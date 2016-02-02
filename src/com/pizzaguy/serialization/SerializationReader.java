@@ -50,5 +50,9 @@ public class SerializationReader {
         byte[] data = readBytes(pointer + 2, src, length);
         return new String(data);
     }
+    
+    public static boolean readBoolean(int pointer, byte[] src){
+    	return (readByte(pointer, src) == 1);
+    }
 
 }

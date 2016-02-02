@@ -4,16 +4,6 @@ import org.bukkit.Material;
 
 public class SerializationWriter {
 
-    public static void main(String[] args){
-        byte[] data = new byte[16];
-        System.out.println(Short.MAX_VALUE);
-        int pointer = writeBytes(0, data, ItemStackSerialization.MATERIAL);
-        pointer = writeBytes(pointer, data, (short) Material.GRASS.getId());
-        String number = new String(SerializationReader.readBytes(0, data, 2));
-        short material = SerializationReader.readShort(2, data);
-        System.out.println(number + " " + Material.getMaterial(material));
-    }
-    
     public static int writeBytes(int pointer, byte[] data, byte value) {
         data[pointer++] = value;
         return pointer;
@@ -70,5 +60,11 @@ public class SerializationWriter {
     public static int writeBytes(int pointer, byte[] data, String string){
         pointer = writeBytes(pointer, data, (short) string.length());
         return writeBytes(pointer, data, string.getBytes());
+    }
+    
+    public static int writeBytes(int pointer, byte[] data, boolean value){
+    	byte bool = (byte) (value ? 1 : 0);
+    	pointer = writeBytes(pointer, data, bool);
+    	return pointer;
     }
 }
