@@ -255,16 +255,17 @@ public class ItemStackSerialization {
     }
 
     private static byte[] serializeLeatherArmorMeta(LeatherArmorMeta meta) {
-        byte[] data =  new byte[6];
+        byte[] data = new byte[6];
         int pointer = SerializationWriter.writeBytes(0, data, LEATHERARMORMETA);
-        pointer =  SerializationWriter.writeBytes(pointer, data, meta.getColor().asRGB());
+        pointer = SerializationWriter.writeBytes(pointer, data, meta.getColor().asRGB());
         return data;
     }
 
     private static byte[] serializeMapMeta(MapMeta meta) {
-        // TODO
-        meta.isScaling();
-        return null;
+        byte[] data = new byte[3];
+        int pointer = SerializationWriter.writeBytes(0, data, MAPMETA);
+        pointer = SerializationWriter.writeBytes(pointer, data, meta.isScaling());
+        return data;
     }
 
     private static byte[] serializePotionMeta(PotionMeta meta) {
@@ -313,9 +314,9 @@ public class ItemStackSerialization {
                 imb.setFireworkData(deserializePower(i, src), deserializeFireworkEffects(i + 4, src));
             else if (id.equals(new String(LEATHERARMORMETA)))
                 imb.setLeatherArmorColor(deserializeLeatherArmorColor(i, src));
-            else if (id.equals(new String(MAPMETA))) {
-                // TODO
-            } else if (id.equals(new String(POTIONMETA))) {
+            else if (id.equals(new String(MAPMETA)))
+                imb.setMapScaling(deserializeMapScaling(i, src));
+            else if (id.equals(new String(POTIONMETA))) {
                 // TODO
             } else if (id.equals(new String(SKULLMETA))) {
                 // TODO
@@ -488,7 +489,11 @@ public class ItemStackSerialization {
     }
 
     private static Color deserializeLeatherArmorColor(int i, byte[] src) {
-        return Color.fromRGB(SerializationReader.readInt(i+LEATHERARMORMETA.length, src));
+        return Color.fromRGB(SerializationReader.readInt(i + LEATHERARMORMETA.length, src));
+    }
+
+    private static boolean deserializeMapScaling(int i, byte[] src) {
+        return SerializationReader.readBoolean(i + MAPMETA.length, src);
     }
 
 }

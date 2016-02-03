@@ -33,7 +33,7 @@ public class Test extends JavaPlugin implements Listener{
 	@EventHandler
 	public void onInteract(PlayerInteractEvent e){
 		byte[] data = ItemStackSerialization.serialize(e.getItem());
-		System.out.println(new String(data));
+		//System.out.println(new String(data));
 		ItemStack item = ItemStackSerialization.deserialize(data);
 		e.getPlayer().getInventory().setItem(e.getPlayer().getInventory().getHeldItemSlot() + 1, item);
 	}
