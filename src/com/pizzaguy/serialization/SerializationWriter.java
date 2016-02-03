@@ -1,7 +1,5 @@
 package com.pizzaguy.serialization;
 
-import org.bukkit.Material;
-
 public class SerializationWriter {
 
     public static int writeBytes(int pointer, byte[] data, byte value) {

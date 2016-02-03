@@ -18,6 +18,8 @@ import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionEffect;
 
 public class ItemStackBuilder {
 
@@ -47,6 +49,7 @@ public class ItemStackBuilder {
 
     }
 
+    @SuppressWarnings("deprecation")
     public ItemStackBuilder setData(byte data) {
         item.getData().setData(data);
         return this;
@@ -134,6 +137,16 @@ public class ItemStackBuilder {
         if (item.getItemMeta() instanceof MapMeta) {
             MapMeta meta = (MapMeta) item.getItemMeta();
             meta.setScaling(scaling);
+            item.setItemMeta(meta);
+        }
+        return this;
+    }
+
+    public ItemStackBuilder setCustomPotions(List<PotionEffect> potions) {
+        if (item.getItemMeta() instanceof PotionMeta) {
+            PotionMeta meta = (PotionMeta) item.getItemMeta();
+            for (PotionEffect potion : potions)
+                meta.addCustomEffect(potion, true);
             item.setItemMeta(meta);
         }
         return this;

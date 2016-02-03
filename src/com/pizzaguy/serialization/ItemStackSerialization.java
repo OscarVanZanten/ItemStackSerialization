@@ -25,6 +25,8 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 public class ItemStackSerialization {
     // headers
@@ -269,9 +271,17 @@ public class ItemStackSerialization {
     }
 
     private static byte[] serializePotionMeta(PotionMeta meta) {
-        // TODO
-        meta.getCustomEffects();
-        return null;
+        byte[] data = new byte[POTIONMETA.length + Short.BYTES + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
+        int pointer = SerializationWriter.writeBytes(0, data, POTIONMETA);
+        pointer = SerializationWriter.writeBytes(pointer, data, (short)meta.getCustomEffects().size());
+        for (PotionEffect effect : meta.getCustomEffects()) {
+            pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getType().getId());
+            pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getAmplifier());
+            pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getDuration());
+            pointer = SerializationWriter.writeBytes(pointer, data, effect.isAmbient());
+            pointer = SerializationWriter.writeBytes(pointer, data, effect.hasParticles());
+        }
+        return data;
     }
 
     private static byte[] serializeSkullMeta(SkullMeta meta) {
@@ -317,7 +327,7 @@ public class ItemStackSerialization {
             else if (id.equals(new String(MAPMETA)))
                 imb.setMapScaling(deserializeMapScaling(i, src));
             else if (id.equals(new String(POTIONMETA))) {
-                // TODO
+                imb.setCustomPotions(deserializeCustomPotions(i, src));
             } else if (id.equals(new String(SKULLMETA))) {
                 // TODO
             }
@@ -494,6 +504,20 @@ public class ItemStackSerialization {
 
     private static boolean deserializeMapScaling(int i, byte[] src) {
         return SerializationReader.readBoolean(i + MAPMETA.length, src);
+    }
+
+    private static List<PotionEffect> deserializeCustomPotions(int i, byte[] src) {
+        List<PotionEffect> effects = new ArrayList<PotionEffect>();
+        short length = SerializationReader.readShort(i += Short.BYTES, src);
+        for (int x = 0; x < length; x++) {
+            short effectID = SerializationReader.readShort(i += Short.BYTES, src);
+            short amplifier = SerializationReader.readShort(i += Short.BYTES, src);
+            short duration = SerializationReader.readShort(i += Short.BYTES, src);
+            boolean ambiant = SerializationReader.readBoolean(i += Short.BYTES, src);
+            boolean particles = SerializationReader.readBoolean(i += 1, src);
+            effects.add(new PotionEffect(PotionEffectType.getById(effectID), duration, amplifier, ambiant, particles));
+        }
+        return effects;
     }
 
 }
