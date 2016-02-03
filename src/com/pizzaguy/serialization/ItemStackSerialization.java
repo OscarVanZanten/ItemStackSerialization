@@ -34,13 +34,12 @@ import net.minecraft.server.v1_8_R3.NBTTagList;
 
 public class ItemStackSerialization {
     // headers
-
+    private static final byte[] HEADER = "IS".getBytes();
     // basic values
     private static final byte[] MATERIAL = "MA".getBytes();
     private static final byte[] AMOUNT = "AM".getBytes();
     private static final byte[] DURABILITY = "DU".getBytes();
     private static final byte[] MATERIALDATA = "MD".getBytes();
-
     // item meta / nbt tag values
     private static final byte[] ENCHANTS = "EN".getBytes();
     private static final byte[] DISPLAYNAME = "DN".getBytes();
@@ -68,7 +67,6 @@ public class ItemStackSerialization {
         final byte[] materialData = serializeMaterialData(item.getData().getData());
         // enchants //
         final byte[] enchants = serializeEnchantments(item.getEnchantments());
-
         //// base meta data ////
         ItemMeta meta = item.getItemMeta();
         // display name //
@@ -77,7 +75,6 @@ public class ItemStackSerialization {
         final byte[] lore = meta.hasLore() ? serializeLore(meta.getLore()) : null;
         // item flags //
         final byte[] itemflags = serializeItemFlags(item.getItemMeta().getItemFlags());
-
         //// specified meta data ////
         byte[] metaData = null;
         if (meta instanceof BannerMeta)
@@ -96,9 +93,8 @@ public class ItemStackSerialization {
             metaData = serializePotionMeta((PotionMeta) meta);
         else if (meta instanceof SkullMeta)
             metaData = serializeSkullMeta(item, (SkullMeta) meta);
-
         // build final byte array
-        final byte[] data = new ByteArrayBuilder(material).add(amount).add(durability).add(materialData).add(enchants)
+        final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData).add(enchants)
                 .add(displayname).add(lore).add(itemflags).add(metaData).Build();
         return data;
     }
@@ -134,11 +130,11 @@ public class ItemStackSerialization {
 
     @SuppressWarnings("deprecation")
     private static final byte[] serializeEnchantments(Map<Enchantment, Integer> enchants) {
-        byte[] data = new byte[4 + (enchants.size() * 4)];
+        byte[] data = new byte[4 + (enchants.size() * 3)];
         int pointer = SerializationWriter.writeBytes(0, data, ENCHANTS);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) enchants.size());
         for (Enchantment enchant : enchants.keySet()) {
-            pointer = SerializationWriter.writeBytes(pointer, data, (short) enchant.getId());
+            pointer = SerializationWriter.writeBytes(pointer, data, (byte) enchant.getId());
             pointer = SerializationWriter.writeBytes(pointer, data, (short) enchants.get(enchant).shortValue());
         }
         return data;
@@ -274,6 +270,7 @@ public class ItemStackSerialization {
         return data;
     }
 
+    @SuppressWarnings("deprecation")
     private static byte[] serializePotionMeta(PotionMeta meta) {
         byte[] data = new byte[POTIONMETA.length + Short.BYTES
                 + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
@@ -306,7 +303,8 @@ public class ItemStackSerialization {
                 ? new byte[SKULLMETA.length + 1 + Short.BYTES * 3 + id.length() + name.length() + texture.length()]
                 : new byte[SKULLMETA.length + 1];
         int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
-        pointer = SerializationWriter.writeBytes(pointer, data, (meta.hasOwner() && id != null && name != null && texture != null));
+        pointer = SerializationWriter.writeBytes(pointer, data,
+                (meta.hasOwner() && id != null && name != null && texture != null));
         if (meta.hasOwner() && id != null && name != null && texture != null) {
             pointer = SerializationWriter.writeBytes(pointer, data, id);
             pointer = SerializationWriter.writeBytes(pointer, data, name);
@@ -361,37 +359,29 @@ public class ItemStackSerialization {
 
     @SuppressWarnings("deprecation")
     private static Material deserializeMaterial(int i, byte[] src) {
-        i += MATERIAL.length;
-        short itemId = SerializationReader.readShort(i, src);
+        short itemId = SerializationReader.readShort(i += MATERIAL.length, src);
         return Material.getMaterial(itemId);
     }
 
     private static int deserializeAmount(int i, byte[] src) {
-        i += AMOUNT.length;
-        return SerializationReader.readShort(i, src);
+        return SerializationReader.readShort(i += AMOUNT.length, src);
     }
 
     private static short deserializeDurability(int i, byte[] src) {
-        i += DURABILITY.length;
-        return SerializationReader.readShort(i, src);
+        return SerializationReader.readShort(i += DURABILITY.length, src);
     }
 
     private static byte deserializeMaterialData(int i, byte[] src) {
-        i += MATERIALDATA.length;
-        return Byte.valueOf((byte) SerializationReader.readByte(i, src));
+        return Byte.valueOf((byte) SerializationReader.readByte(i += MATERIALDATA.length, src));
     }
 
     @SuppressWarnings("deprecation")
     private static Map<Enchantment, Integer> deserializeEnchantments(int i, byte[] src) {
         Map<Enchantment, Integer> enchants = new HashMap<Enchantment, Integer>();
-        i += ENCHANTS.length;
-        short length = SerializationReader.readShort(i, src);
-        i += Short.BYTES;
+        short length = SerializationReader.readShort(i += ENCHANTS.length, src);
         for (int x = 0; x < length; x++) {
-            short enchantId = SerializationReader.readShort(i, src);
-            i += Short.BYTES;
-            short enchantLvl = SerializationReader.readShort(i, src);
-            i += Short.BYTES;
+            int enchantId = SerializationReader.readByte(i += Short.BYTES, src);
+            short enchantLvl = SerializationReader.readShort(++i, src);
             enchants.put(Enchantment.getById(enchantId), new Integer(enchantLvl));
         }
         return enchants;
@@ -404,11 +394,9 @@ public class ItemStackSerialization {
 
     private static List<String> deserializeLore(int i, byte[] src) {
         List<String> lore = new ArrayList<String>();
-        i += LORE.length;
-        short length = SerializationReader.readShort(i, src);
-        i += Short.BYTES;
+        short length = SerializationReader.readShort(i += LORE.length, src);
         for (int x = 0; x < length; x++) {
-            String line = SerializationReader.readString(i, src);
+            String line = SerializationReader.readString(i += Short.BYTES, src);
             lore.add(line);
             i += line.length();
         }
@@ -417,11 +405,9 @@ public class ItemStackSerialization {
 
     private static List<ItemFlag> deserializeItemFlags(int i, byte[] src) {
         List<ItemFlag> flags = new ArrayList<ItemFlag>();
-        i += ITEMFLAGS.length;
-        short length = SerializationReader.readShort(i, src);
-        i += Short.BYTES;
+        short length = SerializationReader.readShort(i += ITEMFLAGS.length, src);
         for (int x = 0; x < length; x++) {
-            short flagId = SerializationReader.readShort(i, src);
+            short flagId = SerializationReader.readShort(i += Short.BYTES, src);
             flags.add(ItemFlag.values()[flagId]);
         }
         return flags;
@@ -429,8 +415,7 @@ public class ItemStackSerialization {
 
     private static DyeColor deserializeBaseColor(int i, byte[] src) {
         DyeColor baseColor = null;
-        i += BANNERMETA.length;
-        short baseID = SerializationReader.readShort(i, src);
+        short baseID = SerializationReader.readShort(i += BANNERMETA.length, src);
         if (baseID != -1)
             baseColor = DyeColor.values()[baseID];
         return baseColor;
@@ -438,22 +423,17 @@ public class ItemStackSerialization {
 
     private static List<Pattern> deserializePatterns(int i, byte[] src) {
         List<Pattern> patterns = new ArrayList<Pattern>();
-        i += Short.BYTES;
-        short length = SerializationReader.readShort(i, src);
-        i += Short.BYTES;
+        short length = SerializationReader.readShort(i += Short.BYTES, src);
         for (int x = 0; x < length; x++) {
-            short color = SerializationReader.readShort(i, src);
-            i += Short.BYTES;
-            short pattern = SerializationReader.readShort(i, src);
-            i += Short.BYTES;
+            short color = SerializationReader.readShort(i += Short.BYTES, src);
+            short pattern = SerializationReader.readShort(i += Short.BYTES, src);
             patterns.add(new Pattern(DyeColor.values()[color], PatternType.values()[pattern]));
         }
         return patterns;
     }
 
     private static String deserializeAuthor(int i, byte[] src) {
-        i += BOOKMETA.length;
-        return SerializationReader.readString(i, src);
+        return SerializationReader.readString(i += BOOKMETA.length, src);
     }
 
     private static String deserializeTitle(int i, byte[] src) {
@@ -463,11 +443,10 @@ public class ItemStackSerialization {
     private static List<String> deserializePages(int i, byte[] src) {
         List<String> pages = new ArrayList<String>();
         short length = SerializationReader.readShort(i, src);
-        i += 2;
         for (int x = 0; x < length; x++) {
-            String current = SerializationReader.readString(i, src);
+            String current = SerializationReader.readString(i += Short.BYTES, src);
             pages.add(current);
-            i += current.length() + 2;
+            i += current.length();
         }
         return pages;
     }
@@ -475,14 +454,11 @@ public class ItemStackSerialization {
     @SuppressWarnings("deprecation")
     private static Map<Enchantment, Integer> deserializeStoredEnchants(int i, byte[] src) {
         Map<Enchantment, Integer> enchants = new HashMap<Enchantment, Integer>();
-        i += 2;
-        short length = SerializationReader.readShort(i, src);
-        i += 2;
+        short length = SerializationReader.readShort(i += Short.BYTES, src);
         for (int x = 0; x < length; x++) {
-            short enchantID = SerializationReader.readShort(i, src);
-            short level = SerializationReader.readShort(i + 2, src);
+            short enchantID = SerializationReader.readShort(i += Short.BYTES, src);
+            short level = SerializationReader.readShort(i += 2, src);
             enchants.put(Enchantment.getById(enchantID), (int) level);
-            i += 2;
         }
         return enchants;
     }
@@ -497,14 +473,11 @@ public class ItemStackSerialization {
         i += 2;
         for (int x = 0; x < length; x++) {
             Type effectID = Type.values()[SerializationReader.readShort(i, src)];
-            i += 2;
-            boolean trail = SerializationReader.readBoolean(i, src);
-            i++;
-            boolean flicker = SerializationReader.readBoolean(i, src);
-            i++;
+            boolean trail = SerializationReader.readBoolean(i += 2, src);
+            boolean flicker = SerializationReader.readBoolean(++i, src);
             List<Color> colors = new ArrayList<Color>();
             List<Color> fadeColors = new ArrayList<Color>();
-            short lengthColor = SerializationReader.readShort(i, src);
+            short lengthColor = SerializationReader.readShort(++i, src);
             i += 2;
             for (int z = 0; z < lengthColor; z++) {
                 colors.add(Color.fromRGB(SerializationReader.readInt(i, src)));
@@ -530,6 +503,7 @@ public class ItemStackSerialization {
         return SerializationReader.readBoolean(i + MAPMETA.length, src);
     }
 
+    @SuppressWarnings("deprecation")
     private static List<PotionEffect> deserializeCustomPotions(int i, byte[] src) {
         List<PotionEffect> effects = new ArrayList<PotionEffect>();
         short length = SerializationReader.readShort(i += Short.BYTES, src);
@@ -538,7 +512,7 @@ public class ItemStackSerialization {
             short amplifier = SerializationReader.readShort(i += Short.BYTES, src);
             short duration = SerializationReader.readShort(i += Short.BYTES, src);
             boolean ambiant = SerializationReader.readBoolean(i += Short.BYTES, src);
-            boolean particles = SerializationReader.readBoolean(i += 1, src);
+            boolean particles = SerializationReader.readBoolean(++i, src);
             effects.add(new PotionEffect(PotionEffectType.getById(effectID), duration, amplifier, ambiant, particles));
         }
         return effects;
@@ -547,17 +521,15 @@ public class ItemStackSerialization {
     private static NBTTagCompound deserializeSkullData(int i, byte[] src) {
         if (!SerializationReader.readBoolean(i += 2, src))
             return null;
-        String id = SerializationReader.readString(i += 1, src);
+        String id = SerializationReader.readString(++i, src);
         String name = SerializationReader.readString(i += id.length() + 2, src);
         String texture = SerializationReader.readString(i += name.length() + 2, src);
         NBTTagCompound tag = new NBTTagCompound();
         NBTTagList textures = new NBTTagList();
         textures.add(new NBTTagCompound());
         textures.get(0).setString("Value", texture); // set this to the
-
         NBTTagCompound properties = new NBTTagCompound();
         properties.set("textures", textures);
-
         NBTTagCompound skullowner = new NBTTagCompound();
         skullowner.setString("Id", id);
         skullowner.setString("Name", name);
