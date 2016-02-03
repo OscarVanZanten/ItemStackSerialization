@@ -13,6 +13,7 @@ import org.bukkit.FireworkEffect.Type;
 import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
+import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -27,6 +28,9 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import net.minecraft.server.v1_8_R3.NBTTagCompound;
+import net.minecraft.server.v1_8_R3.NBTTagList;
 
 public class ItemStackSerialization {
     // headers
@@ -55,24 +59,24 @@ public class ItemStackSerialization {
     public static byte[] serialize(ItemStack item) {
         //// Visible values ////
         // material //
-        byte[] material = serializeMaterial(item.getType());
+        final byte[] material = serializeMaterial(item.getType());
         // amount //
-        byte[] amount = serializeAmount(item.getAmount());
+        final byte[] amount = serializeAmount(item.getAmount());
         // durability //
-        byte[] durability = serializeDurability(item.getDurability());
+        final byte[] durability = serializeDurability(item.getDurability());
         // material data //
-        byte[] materialData = serializeMaterialData(item.getData().getData());
+        final byte[] materialData = serializeMaterialData(item.getData().getData());
         // enchants //
-        byte[] enchants = serializeEnchantments(item.getEnchantments());
+        final byte[] enchants = serializeEnchantments(item.getEnchantments());
 
         //// base meta data ////
         ItemMeta meta = item.getItemMeta();
         // display name //
-        byte[] displayname = meta.hasDisplayName() ? serializeDisplayName(meta.getDisplayName()) : null;
+        final byte[] displayname = meta.hasDisplayName() ? serializeDisplayName(meta.getDisplayName()) : null;
         // lore //
-        byte[] lore = meta.hasLore() ? serializeLore(meta.getLore()) : null;
+        final byte[] lore = meta.hasLore() ? serializeLore(meta.getLore()) : null;
         // item flags //
-        byte[] itemflags = serializeItemFlags(item.getItemMeta().getItemFlags());
+        final byte[] itemflags = serializeItemFlags(item.getItemMeta().getItemFlags());
 
         //// specified meta data ////
         byte[] metaData = null;
@@ -91,7 +95,7 @@ public class ItemStackSerialization {
         else if (meta instanceof PotionMeta)
             metaData = serializePotionMeta((PotionMeta) meta);
         else if (meta instanceof SkullMeta)
-            metaData = serializeSkullMeta((SkullMeta) meta);
+            metaData = serializeSkullMeta(item, (SkullMeta) meta);
 
         // build final byte array
         final byte[] data = new ByteArrayBuilder(material).add(amount).add(durability).add(materialData).add(enchants)
@@ -271,9 +275,10 @@ public class ItemStackSerialization {
     }
 
     private static byte[] serializePotionMeta(PotionMeta meta) {
-        byte[] data = new byte[POTIONMETA.length + Short.BYTES + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
+        byte[] data = new byte[POTIONMETA.length + Short.BYTES
+                + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
         int pointer = SerializationWriter.writeBytes(0, data, POTIONMETA);
-        pointer = SerializationWriter.writeBytes(pointer, data, (short)meta.getCustomEffects().size());
+        pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getCustomEffects().size());
         for (PotionEffect effect : meta.getCustomEffects()) {
             pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getType().getId());
             pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getAmplifier());
@@ -284,10 +289,30 @@ public class ItemStackSerialization {
         return data;
     }
 
-    private static byte[] serializeSkullMeta(SkullMeta meta) {
-        // TODO
-        meta.getOwner();
-        return null;
+    private static byte[] serializeSkullMeta(ItemStack item, SkullMeta meta) {
+        // NBT tag, because skulls are badly supported
+        net.minecraft.server.v1_8_R3.ItemStack stack = CraftItemStack.asNMSCopy(item);
+        NBTTagCompound tag = stack.hasTag() ? stack.getTag() : new NBTTagCompound();
+
+        String id = tag.getCompound("SkullOwner").getString("Id").equals("") ? null
+                : tag.getCompound("SkullOwner").getString("Id");
+        String name = tag.getCompound("SkullOwner").getString("Name").equals("") ? null
+                : tag.getCompound("SkullOwner").getString("Name");
+        String texture = tag.getCompound("SkullOwner").getCompound("Properties").getList("textures", 10).get(0)
+                .getString("Value").equals("") ? null
+                        : tag.getCompound("SkullOwner").getCompound("Properties").getList("textures", 10).get(0)
+                                .getString("Value");
+        byte[] data = meta.hasOwner() && id != null && name != null && texture != null
+                ? new byte[SKULLMETA.length + 1 + Short.BYTES * 3 + id.length() + name.length() + texture.length()]
+                : new byte[SKULLMETA.length + 1];
+        int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
+        pointer = SerializationWriter.writeBytes(pointer, data, (meta.hasOwner() && id != null && name != null && texture != null));
+        if (meta.hasOwner() && id != null && name != null && texture != null) {
+            pointer = SerializationWriter.writeBytes(pointer, data, id);
+            pointer = SerializationWriter.writeBytes(pointer, data, name);
+            pointer = SerializationWriter.writeBytes(pointer, data, texture);
+        }
+        return data;
     }
 
     public static ItemStack deserialize(byte[] src) {
@@ -326,11 +351,10 @@ public class ItemStackSerialization {
                 imb.setLeatherArmorColor(deserializeLeatherArmorColor(i, src));
             else if (id.equals(new String(MAPMETA)))
                 imb.setMapScaling(deserializeMapScaling(i, src));
-            else if (id.equals(new String(POTIONMETA))) {
+            else if (id.equals(new String(POTIONMETA)))
                 imb.setCustomPotions(deserializeCustomPotions(i, src));
-            } else if (id.equals(new String(SKULLMETA))) {
-                // TODO
-            }
+            else if (id.equals(new String(SKULLMETA)))
+                imb.setSkullData(deserializeSkullData(i, src));
         }
         return imb.build();
     }
@@ -518,6 +542,29 @@ public class ItemStackSerialization {
             effects.add(new PotionEffect(PotionEffectType.getById(effectID), duration, amplifier, ambiant, particles));
         }
         return effects;
+    }
+
+    private static NBTTagCompound deserializeSkullData(int i, byte[] src) {
+        if (!SerializationReader.readBoolean(i += 2, src))
+            return null;
+        String id = SerializationReader.readString(i += 1, src);
+        String name = SerializationReader.readString(i += id.length() + 2, src);
+        String texture = SerializationReader.readString(i += name.length() + 2, src);
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagList textures = new NBTTagList();
+        textures.add(new NBTTagCompound());
+        textures.get(0).setString("Value", texture); // set this to the
+
+        NBTTagCompound properties = new NBTTagCompound();
+        properties.set("textures", textures);
+
+        NBTTagCompound skullowner = new NBTTagCompound();
+        skullowner.setString("Id", id);
+        skullowner.setString("Name", name);
+        skullowner.set("Properties", properties);
+
+        tag.set("SkullOwner", skullowner);
+        return tag;
     }
 
 }

@@ -8,6 +8,7 @@ import org.bukkit.DyeColor;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
+import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -19,136 +20,196 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 
-public class ItemStackBuilder {
+import net.minecraft.server.v1_8_R3.NBTTagCompound;
 
+public class ItemStackBuilder {
+    // standart values
     private ItemStack item;
+    private Material material = Material.AIR;
+    private int amount;
+    private short durability;
+    private byte data;
+    // standart meta
+    private String name;
+    private Map<Enchantment, Integer> enchants;
+    private List<String> lore;
+    private List<ItemFlag> flags;
+    // banner meta
+    private DyeColor base;
+    private List<Pattern> patterns;
+    // book meta
+    private String author;
+    private String title;
+    private List<String> pages;
+    // stored enchantment meta
+    private Map<Enchantment, Integer> storedEnchants;
+    // Fireworks meta
+    private int power;
+    private List<FireworkEffect> effects;
+    // leather dye color meta
+    private Color color;
+    // map meta
+    boolean scaling;
+    // potion meta
+    private List<PotionEffect> potions;
+    // skull meta
+    private NBTTagCompound tag;
 
     public ItemStackBuilder() {
         item = new ItemStack(Material.AIR);
     }
 
+    @SuppressWarnings("deprecation")
     public ItemStack build() {
+        item = new ItemStack(material, amount);
+        item.getData().setData(data);
+        item.setDurability(durability);
+
+        if (item.getItemMeta() instanceof BannerMeta) {
+            BannerMeta meta = (BannerMeta) item.getItemMeta();
+            if (base != null)
+                meta.setBaseColor(base);
+            if (patterns != null)
+                meta.setPatterns(patterns);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof BookMeta) {
+            BookMeta meta = (BookMeta) item.getItemMeta();
+            if (author != null)
+                meta.setAuthor(author);
+            if (title != null)
+                meta.setTitle(title);
+            if (pages != null)
+                meta.setPages(pages);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof EnchantmentStorageMeta) {
+            EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+            if (storedEnchants != null)
+                for (Enchantment ench : storedEnchants.keySet())
+                    meta.addStoredEnchant(ench, storedEnchants.get(ench).intValue(), true);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof FireworkMeta) {
+            FireworkMeta meta = (FireworkMeta) item.getItemMeta();
+            if (effects != null)
+                meta.addEffects(effects);
+            meta.setPower(power);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof LeatherArmorMeta) {
+            LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();
+            if (color != null)
+                meta.setColor(color);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof MapMeta) {
+            MapMeta meta = (MapMeta) item.getItemMeta();
+            meta.setScaling(scaling);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof PotionMeta) {
+            PotionMeta meta = (PotionMeta) item.getItemMeta();
+            if (potions != null)
+                for (PotionEffect effect : potions)
+                    meta.addCustomEffect(effect, true);
+            item.setItemMeta(meta);
+        } else if (item.getItemMeta() instanceof SkullMeta) {
+            if (tag != null){
+                net.minecraft.server.v1_8_R3.ItemStack stack = CraftItemStack.asNMSCopy(item);
+                stack.setTag(tag);
+                item = CraftItemStack.asBukkitCopy(stack);
+            }
+        }
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(name);
+        for (Enchantment enchant : enchants.keySet())
+            meta.addEnchant(enchant, enchants.get(enchant), true);
+        meta.setLore(lore);
+        for (ItemFlag flag : flags)
+            meta.addItemFlags(flag);
+        item.setItemMeta(meta);
         return item;
     }
 
     public ItemStackBuilder setType(Material material) {
-        item.setType(material);
+        this.material = material;
         return this;
     }
 
     public ItemStackBuilder setAmount(int amount) {
-        item.setAmount(amount);
+        this.amount = amount;
         return this;
     }
 
     public ItemStackBuilder setDurability(short durability) {
-        item.setDurability(durability);
+        this.durability = durability;
         return this;
-
     }
 
-    @SuppressWarnings("deprecation")
     public ItemStackBuilder setData(byte data) {
-        item.getData().setData(data);
+        this.data = data;
         return this;
     }
 
     public ItemStackBuilder setDisplayName(String name) {
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
-        item.setItemMeta(meta);
+        this.name = name;
         return this;
     }
 
     public ItemStackBuilder addEnchantments(Map<Enchantment, Integer> enchants) {
-        item.addEnchantments(enchants);
+        this.enchants = enchants;
         return this;
     }
 
     public ItemStackBuilder setLore(List<String> lore) {
-        ItemMeta meta = item.getItemMeta();
-        meta.setLore(lore);
-        item.setItemMeta(meta);
+        this.lore = lore;
         return this;
     }
 
     public ItemStackBuilder setFlags(List<ItemFlag> flags) {
-        ItemMeta meta = item.getItemMeta();
-        if (flags.size() != 0)
-            for (ItemFlag flag : flags)
-                meta.addItemFlags(flag);
-        item.setItemMeta(meta);
+        this.flags = flags;
         return this;
     }
 
     public ItemStackBuilder setBannerData(DyeColor base, List<Pattern> patterns) {
-        if (item.getItemMeta() instanceof BannerMeta) {
-            BannerMeta meta = (BannerMeta) item.getItemMeta();
-            meta.setBaseColor(base);
-            meta.setPatterns(patterns);
-            item.setItemMeta(meta);
-        }
+        this.base = base;
+        this.patterns = patterns;
         return this;
     }
 
     public ItemStackBuilder setBookData(String author, String title, List<String> pages) {
-        if (item.getItemMeta() instanceof BookMeta) {
-            BookMeta meta = (BookMeta) item.getItemMeta();
-            meta.setAuthor(author);
-            meta.setTitle(title);
-            meta.setPages(pages);
-            item.setItemMeta(meta);
-        }
+        this.author = author;
+        this.title = title;
+        this.pages = pages;
         return this;
     }
 
     public ItemStackBuilder setStoredEnchantments(Map<Enchantment, Integer> storedEnchants) {
-        if (item.getItemMeta() instanceof EnchantmentStorageMeta) {
-            EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
-            for (Enchantment ench : storedEnchants.keySet())
-                meta.addStoredEnchant(ench, storedEnchants.get(ench).intValue(), true);
-            item.setItemMeta(meta);
-        }
+        this.storedEnchants = storedEnchants;
         return this;
     }
 
     public ItemStackBuilder setFireworkData(int power, List<FireworkEffect> effects) {
-        if (item.getItemMeta() instanceof FireworkMeta) {
-            FireworkMeta meta = (FireworkMeta) item.getItemMeta();
-            meta.addEffects(effects);
-            meta.setPower(power);
-            item.setItemMeta(meta);
-        }
+        this.power = power;
+        this.effects = effects;
         return this;
     }
 
     public ItemStackBuilder setLeatherArmorColor(Color color) {
-        if (item.getItemMeta() instanceof LeatherArmorMeta) {
-            LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();
-            meta.setColor(color);
-            item.setItemMeta(meta);
-        }
+        this.color = color;
         return this;
     }
 
     public ItemStackBuilder setMapScaling(boolean scaling) {
-        if (item.getItemMeta() instanceof MapMeta) {
-            MapMeta meta = (MapMeta) item.getItemMeta();
-            meta.setScaling(scaling);
-            item.setItemMeta(meta);
-        }
+        this.scaling = scaling;
         return this;
     }
 
     public ItemStackBuilder setCustomPotions(List<PotionEffect> potions) {
-        if (item.getItemMeta() instanceof PotionMeta) {
-            PotionMeta meta = (PotionMeta) item.getItemMeta();
-            for (PotionEffect potion : potions)
-                meta.addCustomEffect(potion, true);
-            item.setItemMeta(meta);
-        }
+        this.potions = potions;
+        return this;
+    }
+
+    public ItemStackBuilder setSkullData(NBTTagCompound tag) {
+        this.tag = tag;
         return this;
     }
 }
