@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.DyeColor;
+import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.enchantments.Enchantment;
@@ -12,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class ItemStackBuilder {
@@ -104,5 +106,15 @@ public class ItemStackBuilder {
 			item.setItemMeta(meta);
 		}
 		return this;
+	}
+	
+	public ItemStackBuilder setFireworkData(int power, List<FireworkEffect> effects){
+	    if(item.getItemMeta() instanceof FireworkMeta){
+	        FireworkMeta meta = (FireworkMeta) item.getItemMeta();
+	        meta.addEffects(effects);
+	        meta.setPower(power);
+	        item.setItemMeta(meta);
+	    }
+	    return this;
 	}
 }

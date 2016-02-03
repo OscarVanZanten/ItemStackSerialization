@@ -9,6 +9,7 @@ import java.util.Set;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.FireworkEffect;
+import org.bukkit.FireworkEffect.Type;
 import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
@@ -234,19 +235,18 @@ public class ItemStackSerialization {
 	private static byte[] serializeFireworkMeta(FireworkMeta meta) {
 		int size = 6;
 		for (FireworkEffect effect : meta.getEffects()) {
-			size += 7;
+			size += 8;
 			for (Color color : effect.getColors())
 				size += Integer.BYTES;
 			for (Color color : effect.getFadeColors())
 				size += Integer.BYTES;
 		}
-
 		byte[] data = new byte[size];
 		int pointer = SerializationWriter.writeBytes(0, data, FIREWORKMETA);
 		pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getPower());
-		pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getEffectsSize());
+		pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getEffects().size());
 		for (FireworkEffect effect : meta.getEffects()) {
-			pointer = SerializationWriter.writeBytes(pointer, data, (byte) effect.getType().ordinal());
+			pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getType().ordinal());
 			pointer = SerializationWriter.writeBytes(pointer, data, effect.hasTrail());
 			pointer = SerializationWriter.writeBytes(pointer, data, effect.hasFlicker());
 			pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getColors().size());
@@ -311,11 +311,11 @@ public class ItemStackSerialization {
 				String title = deserializeTitle(i + (author.length() + 4), src);
 				List<String> pages = deserializePages(i + (title.length() + 4) + (author.length() + 2), src);
 				imb.setBookData(author, title, pages);
-			} else if (id.equals(new String(ENCHANTMENTSTORAGEMETA))) {
+			} else if (id.equals(new String(ENCHANTMENTSTORAGEMETA))) 
 				imb.setStoredEnchantments(deserializeStoredEnchants(i, src));
-			} else if (id.equals(new String(FIREWORKMETA))) {
-				// TODO
-			} else if (id.equals(new String(LEATHERARMORMETA))) {
+			else if (id.equals(new String(FIREWORKMETA))) 
+				imb.setFireworkData(deserializePower(i, src), deserializeFireworkEffects(i+4, src));
+			else if (id.equals(new String(LEATHERARMORMETA))) {
 				// TODO
 			} else if (id.equals(new String(MAPMETA))) {
 				// TODO
@@ -454,6 +454,45 @@ public class ItemStackSerialization {
 			i += 2;
 		}
 		return enchants;
+	}
+	
+	private static int deserializePower(int i, byte[]src){
+	    return SerializationReader.readShort(i + 2, src);
+	}
+	
+	private static List<FireworkEffect> deserializeFireworkEffects(int i, byte[] src){ 
+	    List<FireworkEffect> effects= new ArrayList<FireworkEffect> ();
+	    short length =  SerializationReader.readShort(i, src);
+	    System.out.println(length);
+	    i+=2;
+	    for(int x = 0 ; x < length; x++){
+	        Type effectID = Type.values()[SerializationReader.readShort(i , src)];
+	        i+=2;
+	        boolean trail = SerializationReader.readBoolean(i, src);
+	        i++;
+	        boolean flicker =  SerializationReader.readBoolean(i, src);
+	        i++;
+	        List<Color> colors =  new ArrayList<Color>();
+	        List<Color> fadeColors = new ArrayList<Color>();
+	        
+	        short lengthColor = SerializationReader.readShort(i, src);
+	        i+=2;
+	        for(int z = 0; z < lengthColor; z++){
+	            colors.add(Color.fromRGB(SerializationReader.readInt(i, src)));
+	            i+=4;
+	        }
+	        short lengthFadeColor = SerializationReader.readShort(i, src);
+            i+=2;
+            for(int z = 0; z < lengthFadeColor; z++){
+                fadeColors.add(Color.fromRGB(SerializationReader.readInt(i, src)));
+                i+=4;
+            }
+            
+            System.out.println(effectID + " " + trail + " " + flicker + " " + colors.size() + " " +fadeColors.size());
+            
+            effects.add(FireworkEffect.builder().flicker(flicker).trail(trail).withColor(colors).withFade(fadeColors).with(effectID).build());
+	    }
+	    return effects;
 	}
 
 }
