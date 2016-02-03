@@ -3,6 +3,7 @@ package com.pizzaguy.serialization;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 
 public class ItemStackBuilder {
 
@@ -113,6 +115,15 @@ public class ItemStackBuilder {
 	        FireworkMeta meta = (FireworkMeta) item.getItemMeta();
 	        meta.addEffects(effects);
 	        meta.setPower(power);
+	        item.setItemMeta(meta);
+	    }
+	    return this;
+	}
+	
+	public ItemStackBuilder setLeatherArmorColor(Color color){
+	    if(item.getItemMeta() instanceof LeatherArmorMeta){
+	        LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();
+	        meta.setColor(color);
 	        item.setItemMeta(meta);
 	    }
 	    return this;
