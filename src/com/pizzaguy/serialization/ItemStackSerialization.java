@@ -56,6 +56,8 @@ public class ItemStackSerialization {
 
     @SuppressWarnings("deprecation")
     public static byte[] serialize(ItemStack item) {
+        if (item == null)
+            return HEADER;
         //// Visible values ////
         // material //
         final byte[] material = serializeMaterial(item.getType());
@@ -94,9 +96,71 @@ public class ItemStackSerialization {
         else if (meta instanceof SkullMeta)
             metaData = serializeSkullMeta(item, (SkullMeta) meta);
         // build final byte array
-        final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData).add(enchants)
-                .add(displayname).add(lore).add(itemflags).add(metaData).Build();
+        final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData)
+                .add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).Build();
         return data;
+    }
+
+    public static byte[] serializeArray(ItemStack[] items) {
+        ByteArrayBuilder builder = new ByteArrayBuilder(new byte[0]);
+        for (ItemStack item : items) {
+            builder.add(serialize(item));
+        }
+        return builder.Build();
+    }
+
+    public static ItemStack deserialize(byte[] src) {
+        ItemStackBuilder imb = new ItemStackBuilder();
+        for (int i = 0; i < src.length - 1; i++) {
+            byte[] d = SerializationReader.readBytes(i, src, 2);
+            String id = new String(d);
+            if (id.equals(new String(MATERIAL)))
+                imb.setType(deserializeMaterial(i, src));
+            else if (id.equals(new String(AMOUNT)))
+                imb.setAmount(deserializeAmount(i, src));
+            else if (id.equals(new String(DURABILITY)))
+                imb.setDurability(deserializeDurability(i, src));
+            else if (id.equals(new String(MATERIALDATA)))
+                imb.setData(deserializeMaterialData(i, src));
+            else if (id.equals(new String(ENCHANTS)))
+                imb.addEnchantments(deserializeEnchantments(i, src));
+            else if (id.equals(new String(DISPLAYNAME)))
+                imb.setDisplayName(deserizlizeDisplayName(i, src));
+            else if (id.equals(new String(LORE)))
+                imb.setLore(deserializeLore(i, src));
+            else if (id.equals(new String(ITEMFLAGS)))
+                imb.setFlags(deserializeItemFlags(i, src));
+            else if (id.equals(new String(BANNERMETA)))
+                imb.setBannerData(deserializeBaseColor(i, src), deserializePatterns(i + 2, src));
+            else if (id.equals(new String(BOOKMETA))) {
+                String author = deserializeAuthor(i, src);
+                String title = deserializeTitle(i + (author.length() + 4), src);
+                List<String> pages = deserializePages(i + (title.length() + 4) + (author.length() + 2), src);
+                imb.setBookData(author, title, pages);
+            } else if (id.equals(new String(ENCHANTMENTSTORAGEMETA)))
+                imb.setStoredEnchantments(deserializeStoredEnchants(i, src));
+            else if (id.equals(new String(FIREWORKMETA)))
+                imb.setFireworkData(deserializePower(i, src), deserializeFireworkEffects(i + 4, src));
+            else if (id.equals(new String(LEATHERARMORMETA)))
+                imb.setLeatherArmorColor(deserializeLeatherArmorColor(i, src));
+            else if (id.equals(new String(MAPMETA)))
+                imb.setMapScaling(deserializeMapScaling(i, src));
+            else if (id.equals(new String(POTIONMETA)))
+                imb.setCustomPotions(deserializeCustomPotions(i, src));
+            else if (id.equals(new String(SKULLMETA)))
+                imb.setSkullData(deserializeSkullData(i, src));
+        }
+        return imb.build();
+    }
+
+    public static ItemStack[] deserializeArray(byte[] src) {
+        List<ItemStack> items = new ArrayList<ItemStack>();
+        byte[][] itemdata = ByteArrayBuilder.split(src, HEADER);
+        for (byte[] data : itemdata) {
+            ItemStack item = deserialize(data);
+            items.add(item);
+        }
+        return (ItemStack[]) items.toArray(new ItemStack[items.size()]);
     }
 
     @SuppressWarnings("deprecation")
@@ -311,50 +375,6 @@ public class ItemStackSerialization {
             pointer = SerializationWriter.writeBytes(pointer, data, texture);
         }
         return data;
-    }
-
-    public static ItemStack deserialize(byte[] src) {
-        ItemStackBuilder imb = new ItemStackBuilder();
-        for (int i = 0; i < src.length - 1; i++) {
-            byte[] d = SerializationReader.readBytes(i, src, 2);
-            String id = new String(d);
-            if (id.equals(new String(MATERIAL)))
-                imb.setType(deserializeMaterial(i, src));
-            else if (id.equals(new String(AMOUNT)))
-                imb.setAmount(deserializeAmount(i, src));
-            else if (id.equals(new String(DURABILITY)))
-                imb.setDurability(deserializeDurability(i, src));
-            else if (id.equals(new String(MATERIALDATA)))
-                imb.setData(deserializeMaterialData(i, src));
-            else if (id.equals(new String(ENCHANTS)))
-                imb.addEnchantments(deserializeEnchantments(i, src));
-            else if (id.equals(new String(DISPLAYNAME)))
-                imb.setDisplayName(deserizlizeDisplayName(i, src));
-            else if (id.equals(new String(LORE)))
-                imb.setLore(deserializeLore(i, src));
-            else if (id.equals(new String(ITEMFLAGS)))
-                imb.setFlags(deserializeItemFlags(i, src));
-            else if (id.equals(new String(BANNERMETA)))
-                imb.setBannerData(deserializeBaseColor(i, src), deserializePatterns(i + 2, src));
-            else if (id.equals(new String(BOOKMETA))) {
-                String author = deserializeAuthor(i, src);
-                String title = deserializeTitle(i + (author.length() + 4), src);
-                List<String> pages = deserializePages(i + (title.length() + 4) + (author.length() + 2), src);
-                imb.setBookData(author, title, pages);
-            } else if (id.equals(new String(ENCHANTMENTSTORAGEMETA)))
-                imb.setStoredEnchantments(deserializeStoredEnchants(i, src));
-            else if (id.equals(new String(FIREWORKMETA)))
-                imb.setFireworkData(deserializePower(i, src), deserializeFireworkEffects(i + 4, src));
-            else if (id.equals(new String(LEATHERARMORMETA)))
-                imb.setLeatherArmorColor(deserializeLeatherArmorColor(i, src));
-            else if (id.equals(new String(MAPMETA)))
-                imb.setMapScaling(deserializeMapScaling(i, src));
-            else if (id.equals(new String(POTIONMETA)))
-                imb.setCustomPotions(deserializeCustomPotions(i, src));
-            else if (id.equals(new String(SKULLMETA)))
-                imb.setSkullData(deserializeSkullData(i, src));
-        }
-        return imb.build();
     }
 
     @SuppressWarnings("deprecation")

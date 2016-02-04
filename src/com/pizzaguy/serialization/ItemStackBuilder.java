@@ -28,7 +28,7 @@ import net.minecraft.server.v1_8_R3.NBTTagCompound;
 public class ItemStackBuilder {
     // standart values
     private ItemStack item;
-    private Material material = Material.AIR;
+    private Material material;
     private int amount;
     private short durability;
     private byte data;
@@ -64,6 +64,8 @@ public class ItemStackBuilder {
 
     @SuppressWarnings("deprecation")
     public ItemStack build() {
+        if(material == null)
+            return null;
         item = new ItemStack(material, amount);
         item.getData().setData(data);
         item.setDurability(durability);
