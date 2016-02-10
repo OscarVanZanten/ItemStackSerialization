@@ -14,39 +14,37 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.pizzaguy.serialization.ByteArrayBuilder;
 import com.pizzaguy.serialization.ItemStackSerialization;
 
-public class Test extends JavaPlugin implements Listener{
-    
-	public static void main(String[] args) {
-//		ItemStack item = new ItemStack(Material.FIREWORK);
-//		FireworkMeta meta = (FireworkMeta) item.getItemMeta();
-//		meta.addEffect(FireworkEffect.builder().flicker(false).trail(true).withColor(Color.RED).withFade(Color.BLUE).build());
-//		byte[] data = ItemStackSerialization.serialize(item);
-//		System.out.println(new String(data));
-	    ItemStack[] items =  new ItemStack[8];
-	    byte[] data = ItemStackSerialization.serializeArray(items);
-	    byte[][] split = ByteArrayBuilder.split(data, "IS".getBytes());
-	    ItemStack[] deserializedItems = ItemStackSerialization.deserializeArray(data);
-	    
-	    for(byte[] i : split){
-	        System.out.println(new String(i));
-	    }
-	    System.out.println(deserializedItems.length);
-	    
-	}
-	
-	@Override
-	public void onEnable(){
-		Bukkit.getPluginManager().registerEvents(this, this);
-		
-		
-	}
-	
-	@EventHandler
-	public void onInteract(PlayerInteractEvent e){
-		byte[] data = ItemStackSerialization.serialize(e.getItem());
-		System.out.println(new String(data));
-		ItemStack item = ItemStackSerialization.deserialize(data);
-		e.getPlayer().getInventory().setItem(e.getPlayer().getInventory().getHeldItemSlot() + 1, item);
-	}
+public class Test extends JavaPlugin implements Listener {
+
+    public static void main(String[] args) {
+        // ItemStack item = new ItemStack(Material.FIREWORK);
+        // FireworkMeta meta = (FireworkMeta) item.getItemMeta();
+        // meta.addEffect(FireworkEffect.builder().flicker(false).trail(true).withColor(Color.RED).withFade(Color.BLUE).build());
+        // byte[] data = ItemStackSerialization.serialize(item);
+        // System.out.println(new String(data));
+        ItemStack[] items = new ItemStack[8];
+        byte[] data = ItemStackSerialization.serializeArray(items);
+        byte[][] split = ByteArrayBuilder.split(data, "IS".getBytes());
+        ItemStack[] deserializedItems = ItemStackSerialization.deserializeArray(data);
+
+        for (byte[] i : split) {
+            System.out.println(new String(i));
+        }
+        System.out.println(deserializedItems.length);
+
+    }
+
+    @Override
+    public void onEnable() {
+        Bukkit.getPluginManager().registerEvents(this, this);
+
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent e) {
+        byte[] data = ItemStackSerialization.serialize(e.getItem());
+        System.out.println(new String(data));
+        e.getPlayer().getInventory().setItem(0, ItemStackSerialization.deserialize(data));
+    }
 
 }

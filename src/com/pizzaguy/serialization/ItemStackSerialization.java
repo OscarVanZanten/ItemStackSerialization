@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) SainttX <http://sainttx.com>
+ * Copyright (C) contributors
+ *
+ * This file is part of Auctions.
+ *
+ * Auctions is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Auctions is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Auctions.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.pizzaguy.serialization;
 
 import java.util.ArrayList;
@@ -52,7 +71,7 @@ public class ItemStackSerialization {
     private static final byte[] LEATHERARMORMETA = "LA".getBytes();
     private static final byte[] MAPMETA = "MM".getBytes();
     private static final byte[] POTIONMETA = "PM".getBytes();
-    private static final byte[] SKULLMETA = "SM".getBytes();
+    private static final byte[] SKULLMETA = "HM".getBytes();
 
     @SuppressWarnings("deprecation")
     public static byte[] serialize(ItemStack item) {
@@ -72,7 +91,7 @@ public class ItemStackSerialization {
         //// base meta data ////
         ItemMeta meta = item.getItemMeta();
         // display name //
-        final byte[] displayname = meta.hasDisplayName() ? serializeDisplayName(meta.getDisplayName()) : null;
+        final byte[] displayname = meta.hasDisplayName() ? serializeDisplayName(meta.getDisplayName().trim()) : null;
         // lore //
         final byte[] lore = meta.hasLore() ? serializeLore(meta.getLore()) : null;
         // item flags //
@@ -97,7 +116,7 @@ public class ItemStackSerialization {
             metaData = serializeSkullMeta(item, (SkullMeta) meta);
         // build final byte array
         final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData)
-                .add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).Build();
+                .add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).build();
         return data;
     }
 
@@ -106,7 +125,7 @@ public class ItemStackSerialization {
         for (ItemStack item : items) {
             builder.add(serialize(item));
         }
-        return builder.Build();
+        return builder.build();
     }
 
     public static ItemStack deserialize(byte[] src) {
@@ -114,41 +133,42 @@ public class ItemStackSerialization {
         for (int i = 0; i < src.length - 1; i++) {
             byte[] d = SerializationReader.readBytes(i, src, 2);
             String id = new String(d);
-            if (id.equals(new String(MATERIAL)))
+            if (id.equals(new String(MATERIAL)) && !imb.isMaterialSet())
                 imb.setType(deserializeMaterial(i, src));
-            else if (id.equals(new String(AMOUNT)))
+            else if (id.equals(new String(AMOUNT))&& !imb.isAmountSet())
                 imb.setAmount(deserializeAmount(i, src));
-            else if (id.equals(new String(DURABILITY)))
+            else if (id.equals(new String(DURABILITY))&& !imb.isDurabilitySet())
                 imb.setDurability(deserializeDurability(i, src));
-            else if (id.equals(new String(MATERIALDATA)))
+            else if (id.equals(new String(MATERIALDATA))&& !imb.isDataSet())
                 imb.setData(deserializeMaterialData(i, src));
-            else if (id.equals(new String(ENCHANTS)))
+            else if (id.equals(new String(ENCHANTS))&& !imb.isEnchantsSet())
                 imb.addEnchantments(deserializeEnchantments(i, src));
-            else if (id.equals(new String(DISPLAYNAME)))
-                imb.setDisplayName(deserizlizeDisplayName(i, src));
-            else if (id.equals(new String(LORE)))
-                imb.setLore(deserializeLore(i, src));
-            else if (id.equals(new String(ITEMFLAGS)))
+            else if (id.equals(new String(DISPLAYNAME))&& !imb.isNameSet())
+                imb.setDisplayName(deserializeDisplayName(i, src));
+            else if (id.equals(new String(LORE))&& !imb.isLoreSet())
+                imb.setLore(deserializeLore(i, src) );
+            else if (id.equals(new String(ITEMFLAGS))&& !imb.isFlagsSet())
                 imb.setFlags(deserializeItemFlags(i, src));
-            else if (id.equals(new String(BANNERMETA)))
+            else if (id.equals(new String(BANNERMETA))&& !imb.isBannerSet())
                 imb.setBannerData(deserializeBaseColor(i, src), deserializePatterns(i + 2, src));
-            else if (id.equals(new String(BOOKMETA))) {
+            else if (id.equals(new String(BOOKMETA))&& !imb.isBookSet()) {
                 String author = deserializeAuthor(i, src);
                 String title = deserializeTitle(i + (author.length() + 4), src);
                 List<String> pages = deserializePages(i + (title.length() + 4) + (author.length() + 2), src);
                 imb.setBookData(author, title, pages);
-            } else if (id.equals(new String(ENCHANTMENTSTORAGEMETA)))
+            } else if (id.equals(new String(ENCHANTMENTSTORAGEMETA))&& !imb.isStoredEnchantsSet())
                 imb.setStoredEnchantments(deserializeStoredEnchants(i, src));
-            else if (id.equals(new String(FIREWORKMETA)))
+            else if (id.equals(new String(FIREWORKMETA)) && !imb.isFireworkSet())
                 imb.setFireworkData(deserializePower(i, src), deserializeFireworkEffects(i + 4, src));
-            else if (id.equals(new String(LEATHERARMORMETA)))
+            else if (id.equals(new String(LEATHERARMORMETA)) && !imb.isLeatherSet())
                 imb.setLeatherArmorColor(deserializeLeatherArmorColor(i, src));
-            else if (id.equals(new String(MAPMETA)))
+            else if (id.equals(new String(MAPMETA)) && !imb.isMapSet())
                 imb.setMapScaling(deserializeMapScaling(i, src));
-            else if (id.equals(new String(POTIONMETA)))
+            else if (id.equals(new String(POTIONMETA)) && !imb.isPotionSet())
                 imb.setCustomPotions(deserializeCustomPotions(i, src));
-            else if (id.equals(new String(SKULLMETA)))
+            else if (id.equals(new String(SKULLMETA)) && !imb.isSkullSet())
                 imb.setSkullData(deserializeSkullData(i, src));
+            
         }
         return imb.build();
     }
@@ -166,39 +186,39 @@ public class ItemStackSerialization {
     @SuppressWarnings("deprecation")
     private static final byte[] serializeMaterial(Material material) {
         byte[] data = new byte[4];
-        int pointer = SerializationWriter.writeBytes(0, data, MATERIAL);
+        int pointer = SerializationWriter.writeBytes(0, data, MATERIAL,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) material.getId());
         return data;
     }
 
     private static final byte[] serializeAmount(int amount) {
         byte[] data = new byte[4];
-        int pointer = SerializationWriter.writeBytes(0, data, AMOUNT);
+        int pointer = SerializationWriter.writeBytes(0, data, AMOUNT,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) amount);
         return data;
     }
 
     private static final byte[] serializeDurability(short durability) {
         byte[] data = new byte[4];
-        int pointer = SerializationWriter.writeBytes(0, data, DURABILITY);
+        int pointer = SerializationWriter.writeBytes(0, data, DURABILITY,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) durability);
         return data;
     }
 
     private static final byte[] serializeMaterialData(byte materialData) {
-        byte[] data = new byte[3];
-        int pointer = SerializationWriter.writeBytes(0, data, MATERIALDATA);
-        pointer = SerializationWriter.writeBytes(pointer, data, materialData);
+        byte[] data = new byte[4];
+        int pointer = SerializationWriter.writeBytes(0, data, MATERIALDATA,2);
+        pointer = SerializationWriter.writeBytes(pointer, data, (short)materialData);
         return data;
     }
 
     @SuppressWarnings("deprecation")
     private static final byte[] serializeEnchantments(Map<Enchantment, Integer> enchants) {
-        byte[] data = new byte[4 + (enchants.size() * 3)];
-        int pointer = SerializationWriter.writeBytes(0, data, ENCHANTS);
+        byte[] data = new byte[4 + (enchants.size() * 4)];
+        int pointer = SerializationWriter.writeBytes(0, data, ENCHANTS,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) enchants.size());
         for (Enchantment enchant : enchants.keySet()) {
-            pointer = SerializationWriter.writeBytes(pointer, data, (byte) enchant.getId());
+            pointer = SerializationWriter.writeBytes(pointer, data, (short) enchant.getId());
             pointer = SerializationWriter.writeBytes(pointer, data, (short) enchants.get(enchant).shortValue());
         }
         return data;
@@ -206,7 +226,8 @@ public class ItemStackSerialization {
 
     private static final byte[] serializeDisplayName(String name) {
         byte[] data = new byte[4 + name.length()];
-        int pointer = SerializationWriter.writeBytes(0, data, DISPLAYNAME);
+        System.out.println(name.length() + " " + name);
+        int pointer = SerializationWriter.writeBytes(0, data, DISPLAYNAME,2);
         pointer = SerializationWriter.writeBytes(pointer, data, name);
         return data;
     }
@@ -216,7 +237,7 @@ public class ItemStackSerialization {
         for (String line : lore)
             size += Short.BYTES + line.length();
         byte[] data = new byte[size];
-        int pointer = SerializationWriter.writeBytes(0, data, LORE);
+        int pointer = SerializationWriter.writeBytes(0, data, LORE,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) lore.size());
         for (String line : lore)
             pointer = SerializationWriter.writeBytes(pointer, data, line);
@@ -225,7 +246,7 @@ public class ItemStackSerialization {
 
     private static final byte[] serializeItemFlags(Set<ItemFlag> set) {
         byte[] data = new byte[4 + set.size() * 2];
-        int pointer = SerializationWriter.writeBytes(0, data, ITEMFLAGS);
+        int pointer = SerializationWriter.writeBytes(0, data, ITEMFLAGS, 2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) set.size());
         for (ItemFlag flag : set)
             pointer = SerializationWriter.writeBytes(pointer, data, (short) flag.ordinal());
@@ -234,7 +255,7 @@ public class ItemStackSerialization {
 
     private static final byte[] serializeBannerMeta(BannerMeta bMeta) {
         byte[] data = new byte[BANNERMETA.length + Short.BYTES * 2 + bMeta.getPatterns().size() * 4];
-        int pointer = SerializationWriter.writeBytes(0, data, BANNERMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, BANNERMETA,2);
         if (bMeta.getBaseColor() != null)
             pointer = SerializationWriter.writeBytes(pointer, data, (short) bMeta.getBaseColor().ordinal());
         else
@@ -261,7 +282,7 @@ public class ItemStackSerialization {
             size += page.length() + 2;
 
         byte[] data = new byte[size];
-        int pointer = SerializationWriter.writeBytes(0, data, BOOKMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, BOOKMETA,2);
         if (bMeta.hasAuthor())
             pointer = SerializationWriter.writeBytes(pointer, data, bMeta.getAuthor());
         else
@@ -282,7 +303,7 @@ public class ItemStackSerialization {
     @SuppressWarnings("deprecation")
     private static byte[] serializeEnchantmentStorageMeta(EnchantmentStorageMeta meta) {
         byte[] data = new byte[4 + (meta.getStoredEnchants().size() * 4)];
-        int pointer = SerializationWriter.writeBytes(0, data, ENCHANTMENTSTORAGEMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, ENCHANTMENTSTORAGEMETA,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getStoredEnchants().size());
         for (Enchantment ench : meta.getStoredEnchants().keySet()) {
             pointer = SerializationWriter.writeBytes(pointer, data, (short) ench.getId());
@@ -303,7 +324,7 @@ public class ItemStackSerialization {
                 size += Integer.BYTES;
         }
         byte[] data = new byte[size];
-        int pointer = SerializationWriter.writeBytes(0, data, FIREWORKMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, FIREWORKMETA,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getPower());
         pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getEffects().size());
         for (FireworkEffect effect : meta.getEffects()) {
@@ -322,14 +343,14 @@ public class ItemStackSerialization {
 
     private static byte[] serializeLeatherArmorMeta(LeatherArmorMeta meta) {
         byte[] data = new byte[6];
-        int pointer = SerializationWriter.writeBytes(0, data, LEATHERARMORMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, LEATHERARMORMETA,2);
         pointer = SerializationWriter.writeBytes(pointer, data, meta.getColor().asRGB());
         return data;
     }
 
     private static byte[] serializeMapMeta(MapMeta meta) {
         byte[] data = new byte[3];
-        int pointer = SerializationWriter.writeBytes(0, data, MAPMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, MAPMETA,2);
         pointer = SerializationWriter.writeBytes(pointer, data, meta.isScaling());
         return data;
     }
@@ -338,7 +359,7 @@ public class ItemStackSerialization {
     private static byte[] serializePotionMeta(PotionMeta meta) {
         byte[] data = new byte[POTIONMETA.length + Short.BYTES
                 + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
-        int pointer = SerializationWriter.writeBytes(0, data, POTIONMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, POTIONMETA,2);
         pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getCustomEffects().size());
         for (PotionEffect effect : meta.getCustomEffects()) {
             pointer = SerializationWriter.writeBytes(pointer, data, (short) effect.getType().getId());
@@ -366,7 +387,7 @@ public class ItemStackSerialization {
         byte[] data = meta.hasOwner() && id != null && name != null && texture != null
                 ? new byte[SKULLMETA.length + 1 + Short.BYTES * 3 + id.length() + name.length() + texture.length()]
                 : new byte[SKULLMETA.length + 1];
-        int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
+        int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA,2);
         pointer = SerializationWriter.writeBytes(pointer, data,
                 (meta.hasOwner() && id != null && name != null && texture != null));
         if (meta.hasOwner() && id != null && name != null && texture != null) {
@@ -392,7 +413,7 @@ public class ItemStackSerialization {
     }
 
     private static byte deserializeMaterialData(int i, byte[] src) {
-        return Byte.valueOf((byte) SerializationReader.readByte(i += MATERIALDATA.length, src));
+        return  (byte) SerializationReader.readShort(i += MATERIALDATA.length, src);
     }
 
     @SuppressWarnings("deprecation")
@@ -400,16 +421,15 @@ public class ItemStackSerialization {
         Map<Enchantment, Integer> enchants = new HashMap<Enchantment, Integer>();
         short length = SerializationReader.readShort(i += ENCHANTS.length, src);
         for (int x = 0; x < length; x++) {
-            int enchantId = SerializationReader.readByte(i += Short.BYTES, src);
-            short enchantLvl = SerializationReader.readShort(++i, src);
+            int enchantId = SerializationReader.readShort(i += Short.BYTES, src);
+            short enchantLvl = SerializationReader.readShort(i += Short.BYTES, src);
             enchants.put(Enchantment.getById(enchantId), new Integer(enchantLvl));
         }
         return enchants;
     }
 
-    private static String deserizlizeDisplayName(int i, byte[] src) {
-        i += DISPLAYNAME.length;
-        return SerializationReader.readString(i, src);
+    private static String deserializeDisplayName(int i, byte[] src) {
+        return SerializationReader.readString(i + 2, src);
     }
 
     private static List<String> deserializeLore(int i, byte[] src) {
@@ -539,11 +559,19 @@ public class ItemStackSerialization {
     }
 
     private static NBTTagCompound deserializeSkullData(int i, byte[] src) {
-        if (!SerializationReader.readBoolean(i += 2, src))
+        boolean hasData = SerializationReader.readBoolean(i += 2, src);
+        System.out.println(hasData);
+        if (!hasData)
             return null;
         String id = SerializationReader.readString(++i, src);
         String name = SerializationReader.readString(i += id.length() + 2, src);
         String texture = SerializationReader.readString(i += name.length() + 2, src);
+        
+        System.out.println("------");
+        System.out.println(id);
+        System.out.println(name);
+        System.out.println(texture);
+        
         NBTTagCompound tag = new NBTTagCompound();
         NBTTagList textures = new NBTTagList();
         textures.add(new NBTTagCompound());

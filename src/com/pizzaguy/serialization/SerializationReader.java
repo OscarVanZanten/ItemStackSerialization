@@ -1,13 +1,29 @@
+/*
+ * Copyright (C) SainttX <http://sainttx.com>
+ * Copyright (C) contributors
+ *
+ * This file is part of Auctions.
+ *
+ * Auctions is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Auctions is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Auctions.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.pizzaguy.serialization;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class SerializationReader {
-    
-    public static int readByte(int pointer, byte[] src) {
-        return Byte.toUnsignedInt(src[pointer]);
-    }
+
 
     public static byte[] readBytes(int pointer, byte[] src, int length) {
         byte[] data = new byte[length];
@@ -44,15 +60,15 @@ public class SerializationReader {
         byte[] data = Arrays.copyOfRange(src, pointer, pointer + Double.BYTES);
         return ByteBuffer.wrap(data).getDouble();
     }
-    
-    public static String readString(int pointer, byte[] src){
+
+    public static String readString(int pointer, byte[] src) {
         short length = readShort(pointer, src);
         byte[] data = readBytes(pointer + 2, src, length);
         return new String(data);
     }
-    
-    public static boolean readBoolean(int pointer, byte[] src){
-    	return (readByte(pointer, src) == 1);
+
+    public static boolean readBoolean(int pointer, byte[] src) {
+        return (src[pointer] & 0xff) >= 1;
     }
 
 }
