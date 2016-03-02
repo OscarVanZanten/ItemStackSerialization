@@ -1,23 +1,5 @@
-/*
- * Copyright (C) SainttX <http://sainttx.com>
- * Copyright (C) contributors
- *
- * This file is part of Auctions.
- *
- * Auctions is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Auctions is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Auctions.  If not, see <http://www.gnu.org/licenses/>.
- */
-package com.pizzaguy.serialization;
+
+package com.pizzaguy.serialization.builder;
 
 import java.util.List;
 import java.util.Map;
@@ -48,172 +30,249 @@ public class ItemStackBuilder {
     // standart values
     private ItemStack item;
     private Material material;
-    private boolean materialSet;
     private int amount;
-    private boolean amountSet;
     private short durability;
-    private boolean durabilitySet;
     private byte data;
-    private boolean dataSet;
     // standart meta
     private String name;
-    private boolean nameSet;
     private Map<Enchantment, Integer> enchants;
-    private boolean enchantsSet;
     private List<String> lore;
-    private boolean loreSet;
     private List<ItemFlag> flags;
-    private boolean flagsSet;
     // banner meta
-    private boolean bannerSet;
     private DyeColor base;
     private List<Pattern> patterns;
     // book meta
-    private boolean bookSet;
     private String author;
     private String title;
     private List<String> pages;
     // stored enchantment meta
-    private boolean storedEnchantsSet;
     private Map<Enchantment, Integer> storedEnchants;
     // Fireworks meta
-    private boolean fireworkSet;
     private int power;
     private List<FireworkEffect> effects;
     // leather dye color meta
-    private boolean leatherSet;
     private Color color;
     // map meta
-    private boolean mapSet;
     boolean scaling;
     // potion meta
-    private boolean potionSet;
     private List<PotionEffect> potions;
     // skull meta
-    private boolean skullSet;
     private NBTTagCompound tag;
+    
+    //variables for keeping track for what is set and what isnt
+    private boolean materialSet;
+    private boolean amountSet;
+    private boolean durabilitySet;
+    private boolean dataSet;
+    private boolean nameSet;
+    private boolean enchantsSet;
+    private boolean loreSet;
+    private boolean flagsSet;
+    private boolean bannerSet;
+    private boolean bookSet;
+    private boolean storedEnchantsSet;
+    private boolean fireworkSet;
+    private boolean leatherSet;
+    private boolean mapSet;
+    private boolean potionSet;
+    private boolean skullSet;
 
+    //default constructor
     public ItemStackBuilder() {
+        //defualt material is air or as treated in MC as Null
         item = new ItemStack(Material.AIR);
     }
 
+    //build the itemstack
     @SuppressWarnings("deprecation")
     public ItemStack build() {
+        //return null if material is null
         if (material == null)
             return null;
+        //set material and amount
         item = new ItemStack(material, amount);
+        //set materialdata
         item.getData().setData(data);
+        //set durability
         item.setDurability(durability);
 
+        //set specific itemmeta
+        
+        //bannermeta
         if (item.getItemMeta() instanceof BannerMeta) {
+            //cast the itemmeta
             BannerMeta meta = (BannerMeta) item.getItemMeta();
+            //set basecolor
             if (base != null)
                 meta.setBaseColor(base);
+            //set basecolors
             if (patterns != null)
                 meta.setPatterns(patterns);
+            //set itemmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof BookMeta) {
+        } 
+        //book
+        else if (item.getItemMeta() instanceof BookMeta) {
+            //cast the itemmeta
             BookMeta meta = (BookMeta) item.getItemMeta();
+            //set author
             if (author != null)
                 meta.setAuthor(author);
+            //set title
             if (title != null)
                 meta.setTitle(title);
+            //set pages
             if (pages != null)
                 meta.setPages(pages);
+            //set itemmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof EnchantmentStorageMeta) {
+        } 
+        //enchantmetnstorage meta
+        else if (item.getItemMeta() instanceof EnchantmentStorageMeta) {
+            //cast the itemmeta
             EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+            //check if null
             if (storedEnchants != null)
+                //go through the map
                 for (Enchantment ench : storedEnchants.keySet())
+                    //add the ecnhantsments to the itemmeta
                     meta.addStoredEnchant(ench, storedEnchants.get(ench).intValue(), true);
+            //set ietmmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof FireworkMeta) {
+        } 
+        //firework meta
+        else if (item.getItemMeta() instanceof FireworkMeta) {
+            //cast the itemmeta
             FireworkMeta meta = (FireworkMeta) item.getItemMeta();
+            //check if null
             if (effects != null)
+                //set effects
                 meta.addEffects(effects);
+            //set null
             meta.setPower(power);
+            //set itemmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof LeatherArmorMeta) {
+        } 
+        //leatherarmor meta
+        else if (item.getItemMeta() instanceof LeatherArmorMeta) {
+            //cast the itemmeta
             LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();
+            //check if null
             if (color != null)
+                //set color
                 meta.setColor(color);
+            //set itemmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof MapMeta) {
+        } 
+        //map meta
+        else if (item.getItemMeta() instanceof MapMeta) {
+            //cast the itemmeta
             MapMeta meta = (MapMeta) item.getItemMeta();
+            //set scaling
             meta.setScaling(scaling);
+            //set itemmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof PotionMeta) {
+        } 
+        //potionmeta
+        else if (item.getItemMeta() instanceof PotionMeta) {
+            //cast the itemmeta
             PotionMeta meta = (PotionMeta) item.getItemMeta();
+            //check if null
             if (potions != null)
+                //go through the effects
                 for (PotionEffect effect : potions)
+                    //add the effects to the itemmeta
                     meta.addCustomEffect(effect, true);
+            //set the itemmeta
             item.setItemMeta(meta);
-        } else if (item.getItemMeta() instanceof SkullMeta) {
+        } 
+        //skullmeta
+        else if (item.getItemMeta() instanceof SkullMeta) {
+            //check if null
             if (tag != null) {
+                //get the Craftitemstack 
                 net.minecraft.server.v1_8_R3.ItemStack stack = CraftItemStack.asNMSCopy(item);
+                //add the tag
                 stack.setTag(tag);
+                //convert it back to a bukkit copy
                 item = CraftItemStack.asBukkitCopy(stack);
             }
         }
+        //get itemmeta
         ItemMeta meta = item.getItemMeta();
+        //set itemmeta
         meta.setDisplayName(name);
+        //add enchants
         for (Enchantment enchant : enchants.keySet())
             meta.addEnchant(enchant, enchants.get(enchant), true);
+        //set lore
         meta.setLore(lore);
+        //set itemflags
         for (ItemFlag flag : flags)
             meta.addItemFlags(flag);
+        //add itemmeta to item
         item.setItemMeta(meta);
+        //return the final item
         return item;
     }
 
+    //set material
     public ItemStackBuilder setType(Material material) {
         this.material = material;
         this.materialSet = true;
         return this;
     }
 
+    //set amount
     public ItemStackBuilder setAmount(int amount) {
         this.amount = amount;
         this.amountSet = true;
         return this;
     }
 
+    //set durabilty
     public ItemStackBuilder setDurability(short durability) {
         this.durability = durability;
         this.durabilitySet = true;
         return this;
     }
 
+    //set data
     public ItemStackBuilder setData(byte data) {
         this.data = data;
         this.dataSet = true;
         return this;
     }
 
+    //set display name
     public ItemStackBuilder setDisplayName(String name) {
         this.name = name;
         this.nameSet = true;
         return this;
     }
 
+    //set enchantments
     public ItemStackBuilder addEnchantments(Map<Enchantment, Integer> enchants) {
         this.enchants = enchants;
         this.enchantsSet = true;
         return this;
     }
 
+    //set lore
     public ItemStackBuilder setLore(List<String> lore) {
         this.lore = lore;
         this.loreSet = true;
         return this;
     }
 
+    //set flags
     public ItemStackBuilder setFlags(List<ItemFlag> flags) {
         this.flags = flags;
         this.flagsSet = true;
         return this;
     }
 
+    //set bannerdata
     public ItemStackBuilder setBannerData(DyeColor base, List<Pattern> patterns) {
         this.base = base;
         this.patterns = patterns;
@@ -221,6 +280,7 @@ public class ItemStackBuilder {
         return this;
     }
 
+    //set bookdata
     public ItemStackBuilder setBookData(String author, String title, List<String> pages) {
         this.author = author;
         this.title = title;
@@ -229,12 +289,14 @@ public class ItemStackBuilder {
         return this;
     }
 
+    //set storedenchantmetns
     public ItemStackBuilder setStoredEnchantments(Map<Enchantment, Integer> storedEnchants) {
         this.storedEnchants = storedEnchants;
         this.storedEnchantsSet =true;
         return this;
     }
 
+    //set fireworkdata
     public ItemStackBuilder setFireworkData(int power, List<FireworkEffect> effects) {
         this.power = power;
         this.effects = effects;
@@ -242,30 +304,35 @@ public class ItemStackBuilder {
         return this;
     }
 
+    //set leatherarmor color
     public ItemStackBuilder setLeatherArmorColor(Color color) {
         this.color = color;
         this.leatherSet = true;
         return this;
     }
 
+    //set map scaling
     public ItemStackBuilder setMapScaling(boolean scaling) {
         this.scaling = scaling;
         this.mapSet = true;
         return this;
     }
 
+    //set custom potions
     public ItemStackBuilder setCustomPotions(List<PotionEffect> potions) {
         this.potions = potions;
         this.potionSet = true;
         return this;
     }
 
+    //set skull data
     public ItemStackBuilder setSkullData(NBTTagCompound tag) {
         this.tag = tag;
         this.skullSet = true;
         return this;
     }
 
+    ////getters to check if something is set//////
     public boolean isMaterialSet() {
         return materialSet;
     }
@@ -326,9 +393,6 @@ public class ItemStackBuilder {
         return skullSet;
     }
 
-    /**
-     * @return the dataSet
-     */
     public boolean isDataSet() {
         return dataSet;
     }
