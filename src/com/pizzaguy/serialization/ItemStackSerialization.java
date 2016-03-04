@@ -217,7 +217,7 @@ public class ItemStackSerialization {
             else if (id.equals(new String(FIREWORKMETA)) && !imb.isFireworkSet()) {
                 Result r = deserializePower(i, src);
                 Result r2 = deserializeFireworkEffects(r.getLength(), src);
-                imb.setFireworkData((int) r.getResult(), (List<FireworkEffect>) r2.getResult());
+                imb.setFireworkData((short) r.getResult(), (List<FireworkEffect>) r2.getResult());
                 i = r2.getLength();
             }
             // LeatherArmor meta
@@ -411,15 +411,14 @@ public class ItemStackSerialization {
         // calculate size
         int size = 2;
         if (bMeta.hasAuthor())
-            size += bMeta.getAuthor().length();
+            size += bMeta.getAuthor().getBytes().length;
         size += 2;
         if (bMeta.hasTitle())
-            size += bMeta.getTitle().length();
+            size += bMeta.getTitle().getBytes().length;
         size += 2;
-        if (bMeta.hasPages())
             size += 2;
         for (String page : bMeta.getPages())
-            size += page.length() + 2;
+            size += page.getBytes().length + 2;
         // create space
         byte[] data = new byte[size];
         // write header
@@ -578,7 +577,7 @@ public class ItemStackSerialization {
                                 .getString("Value");
         // create space
         byte[] data = meta.hasOwner() && id != null && name != null && texture != null
-                ? new byte[SKULLMETA.length + 1 + Short.BYTES * 3 + id.length() + name.length() + texture.length()]
+                ? new byte[SKULLMETA.length + 1 + Short.BYTES * 3 + id.getBytes().length + name.getBytes().length + texture.getBytes().length]
                 : new byte[SKULLMETA.length + 1];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
@@ -731,7 +730,7 @@ public class ItemStackSerialization {
         // read author name
         String string = SerializationReader.readString(i += BOOKMETA.length, src);
         // return result class with result and current read position
-        return new Result(string, i + string.length());
+        return new Result(string, i + string.getBytes().length + 2);
     }
 
     // return title
@@ -739,7 +738,7 @@ public class ItemStackSerialization {
         // read title
         String string = SerializationReader.readString(i, src);
         // return result class with result and current read position
-        return new Result(string, i + string.length());
+        return new Result(string, i + string.getBytes().length +2);
     }
 
     // read pages
@@ -754,7 +753,7 @@ public class ItemStackSerialization {
             String current = SerializationReader.readString(i += Short.BYTES, src);
             // ad page
             pages.add(current);
-            i += current.length();
+            i += current.getBytes().length;
         }
         // return result class with result and current read position
         return new Result(pages, i);
@@ -793,7 +792,7 @@ public class ItemStackSerialization {
         // creat list
         List<FireworkEffect> effects = new ArrayList<FireworkEffect>();
         // read firework effect length
-        short length = SerializationReader.readShort(i, src);
+        short length = SerializationReader.readShort(i+=2, src);
         i += 2;
         // read effects
         for (int x = 0; x < length; x++) {
@@ -802,11 +801,11 @@ public class ItemStackSerialization {
             // read trail
             boolean trail = SerializationReader.readBoolean(i += 2, src);
             // read flicker
-            boolean flicker = SerializationReader.readBoolean(++i, src);
+            boolean flicker = SerializationReader.readBoolean(i+=1, src);
             // create color list
             List<Color> colors = new ArrayList<Color>();
             // read color length
-            short lengthColor = SerializationReader.readShort(++i, src);
+            short lengthColor = SerializationReader.readShort(i+=1, src);
             i += 2;
             // read colors
             for (int z = 0; z < lengthColor; z++) {
