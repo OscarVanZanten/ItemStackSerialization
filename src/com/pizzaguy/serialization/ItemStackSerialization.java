@@ -241,8 +241,10 @@ public class ItemStackSerialization {
             // Skull meta
             else if (id.equals(new String(SKULLMETA)) && !imb.isSkullSet()) {
                 Result r = deserializeSkullData(i, src);
-                imb.setSkullData((NBTTagCompound) r.getResult());
-                i = r.getLength();
+                if (r != null) {
+                    imb.setSkullData((NBTTagCompound) r.getResult());
+                    i = r.getLength();
+                }
             }
 
         }
@@ -336,7 +338,7 @@ public class ItemStackSerialization {
     // write displayname
     private static final byte[] serializeDisplayName(String name) {
         // create space
-        byte[] data = new byte[4 + name.length()];
+        byte[] data = new byte[4 + name.getBytes().length];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, DISPLAYNAME);
         // write string
@@ -654,7 +656,7 @@ public class ItemStackSerialization {
         // read name
         String string = SerializationReader.readString(i += 2, src);
         // return result class with result and current read position
-        return new Result(string, i + string.length());
+        return new Result(string, i + string.getBytes().length);
     }
 
     // read lore
@@ -669,7 +671,7 @@ public class ItemStackSerialization {
             String line = SerializationReader.readString(i += Short.BYTES, src);
             // add to list
             lore.add(line);
-            i += line.length();
+            i += line.getBytes().length;
         }
         // return result class with result and current read position
         return new Result(lore, i);
@@ -882,9 +884,9 @@ public class ItemStackSerialization {
         // read id
         String id = SerializationReader.readString(++i, src);
         // read name
-        String name = SerializationReader.readString(i += id.length() + 2, src);
+        String name = SerializationReader.readString(i += id.getBytes().length + 2, src);
         // read texture
-        String texture = SerializationReader.readString(i += name.length() + 2, src);
+        String texture = SerializationReader.readString(i += name.getBytes().length + 2, src);
 
         // create tag
         NBTTagCompound tag = new NBTTagCompound();
