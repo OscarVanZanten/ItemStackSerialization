@@ -9,7 +9,7 @@ import org.bukkit.DyeColor;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
-import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_9_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -24,7 +24,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 
-import net.minecraft.server.v1_8_R3.NBTTagCompound;
+import net.minecraft.server.v1_9_R1.NBTTagCompound;
 
 public class ItemStackBuilder {
     // standart values
@@ -191,7 +191,7 @@ public class ItemStackBuilder {
             //check if null
             if (tag != null) {
                 //get the Craftitemstack 
-                net.minecraft.server.v1_8_R3.ItemStack stack = CraftItemStack.asNMSCopy(item);
+                net.minecraft.server.v1_9_R1.ItemStack stack = CraftItemStack.asNMSCopy(item);
                 //add the tag
                 stack.setTag(tag);
                 //convert it back to a bukkit copy

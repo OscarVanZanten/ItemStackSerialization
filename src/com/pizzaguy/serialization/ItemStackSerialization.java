@@ -14,7 +14,7 @@ import org.bukkit.FireworkEffect.Type;
 import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
-import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_9_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -34,14 +34,15 @@ import com.pizzaguy.serialization.builder.ByteArrayBuilder;
 import com.pizzaguy.serialization.builder.ItemStackBuilder;
 import com.pizzaguy.serialization.model.Result;
 
-import net.minecraft.server.v1_8_R3.NBTTagCompound;
-import net.minecraft.server.v1_8_R3.NBTTagList;
+import net.minecraft.server.v1_9_R1.NBTTagCompound;
+import net.minecraft.server.v1_9_R1.NBTTagList;
 
 public class ItemStackSerialization {
     // all headers for all the data a item could have
 
     // headers
-    private static final byte[] HEADER = "IS".getBytes();
+    private static final byte[] HEADER = "[IS]".getBytes();
+    private static final byte[] FOOTER = "[/IS]".getBytes();
     // basic values
     private static final byte[] MATERIAL = "MA".getBytes();
     private static final byte[] AMOUNT = "AM".getBytes();
@@ -66,7 +67,7 @@ public class ItemStackSerialization {
     public static byte[] serialize(ItemStack item) {
         // checking if the item given isnt just null
         if (item == null)
-            return HEADER;
+            return new ByteArrayBuilder(HEADER).add(FOOTER).build();
         // create all arrays for different variables to be added later
 
         //// Visible values ////
@@ -110,7 +111,7 @@ public class ItemStackSerialization {
             metaData = serializeSkullMeta(item, (SkullMeta) meta);
         // build final byte array with all the before created arrays
         final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData)
-                .add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).build();
+                .add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).add(FOOTER).build();
         return data;
     }
 
@@ -126,18 +127,29 @@ public class ItemStackSerialization {
         return builder.build();
     }
 
+    public static ItemStack deserialize(byte[] src){
+        return (ItemStack) deserialize(src, 0).getResult();
+    }
+    
     // deserialized itemstack
     @SuppressWarnings("unchecked")
-    public static ItemStack deserialize(byte[] src) {
+    public static Result deserialize(byte[] src, int index) {
         // creates an itemstackbuilder object for the final itemstack
         ItemStackBuilder imb = new ItemStackBuilder();
         // cycles through all the bytes in the array
-        for (int i = 0; i < src.length - 1; i++) {
+        for (int i = index; i < src.length - 1; i++) {
             // takes this byte and the next to compare to the headers
             byte[] d = SerializationReader.readBytes(i, src, 2);
             // creates string from it
             String id = new String(d);
 
+            // copares the current bytes to footer and stops reading when finds
+            // footer
+            if (i + FOOTER.length < src.length - 1) {
+                String footer = new String(SerializationReader.readBytes(i, src, FOOTER.length));
+                if (footer.equals(new String(FOOTER)))
+                    break;
+            }
             // compares to one of the before mentioned header
             // and if it has not been set yet in the itemstackbuilder read the
             // data and put it into the itemstackbuilder
@@ -246,23 +258,23 @@ public class ItemStackSerialization {
                     i = r.getLength();
                 }
             }
-
+            index = i;
         }
         // Finally build the itemstackbuilder and return it
-        return imb.build();
+        return new Result(imb.build(), index);
     }
 
     // deserialize itemstack array
     public static ItemStack[] deserializeArray(byte[] src) {
         // creates a new itemstack array
         List<ItemStack> items = new ArrayList<ItemStack>();
-        // TODO needs work, wrong assumption here, could split the array up in
-        // faulty parts
-        byte[][] itemdata = ByteArrayBuilder.split(src, HEADER);
         // deserialize all the byte arrays and item to the itemstack list
-        for (byte[] data : itemdata) {
-            ItemStack item = deserialize(data);
-            items.add(item);
+        for (int i = 0; i < src.length - HEADER.length; i++) {
+            String header = new String(SerializationReader.readBytes(i, src, HEADER.length));
+            if (header.equals(new String(HEADER))) {
+                ItemStack item = (ItemStack) deserialize(src, i).getResult();
+                items.add(item);
+            }
         }
         // return the itemstack list as a native array
         return (ItemStack[]) items.toArray(new ItemStack[items.size()]);
@@ -416,7 +428,7 @@ public class ItemStackSerialization {
         if (bMeta.hasTitle())
             size += bMeta.getTitle().getBytes().length;
         size += 2;
-            size += 2;
+        size += 2;
         for (String page : bMeta.getPages())
             size += page.getBytes().length + 2;
         // create space
@@ -561,7 +573,7 @@ public class ItemStackSerialization {
     // serialized skull meta
     private static byte[] serializeSkullMeta(ItemStack item, SkullMeta meta) {
         // NBT tag, because skulls are badly supported
-        net.minecraft.server.v1_8_R3.ItemStack stack = CraftItemStack.asNMSCopy(item);
+        net.minecraft.server.v1_9_R1.ItemStack stack = CraftItemStack.asNMSCopy(item);
         NBTTagCompound tag = stack.hasTag() ? stack.getTag() : new NBTTagCompound();
 
         // sets users id if avaliable
@@ -576,8 +588,8 @@ public class ItemStackSerialization {
                         : tag.getCompound("SkullOwner").getCompound("Properties").getList("textures", 10).get(0)
                                 .getString("Value");
         // create space
-        byte[] data = meta.hasOwner() && id != null && name != null && texture != null
-                ? new byte[SKULLMETA.length + 1 + Short.BYTES * 3 + id.getBytes().length + name.getBytes().length + texture.getBytes().length]
+        byte[] data = meta.hasOwner() && id != null && name != null && texture != null ? new byte[SKULLMETA.length + 1
+                + Short.BYTES * 3 + id.getBytes().length + name.getBytes().length + texture.getBytes().length]
                 : new byte[SKULLMETA.length + 1];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
@@ -738,7 +750,7 @@ public class ItemStackSerialization {
         // read title
         String string = SerializationReader.readString(i, src);
         // return result class with result and current read position
-        return new Result(string, i + string.getBytes().length +2);
+        return new Result(string, i + string.getBytes().length + 2);
     }
 
     // read pages
@@ -792,7 +804,7 @@ public class ItemStackSerialization {
         // creat list
         List<FireworkEffect> effects = new ArrayList<FireworkEffect>();
         // read firework effect length
-        short length = SerializationReader.readShort(i+=2, src);
+        short length = SerializationReader.readShort(i += 2, src);
         i += 2;
         // read effects
         for (int x = 0; x < length; x++) {
@@ -801,11 +813,11 @@ public class ItemStackSerialization {
             // read trail
             boolean trail = SerializationReader.readBoolean(i += 2, src);
             // read flicker
-            boolean flicker = SerializationReader.readBoolean(i+=1, src);
+            boolean flicker = SerializationReader.readBoolean(i += 1, src);
             // create color list
             List<Color> colors = new ArrayList<Color>();
             // read color length
-            short lengthColor = SerializationReader.readShort(i+=1, src);
+            short lengthColor = SerializationReader.readShort(i += 1, src);
             i += 2;
             // read colors
             for (int z = 0; z < lengthColor; z++) {
