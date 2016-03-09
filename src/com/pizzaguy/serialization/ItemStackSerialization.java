@@ -127,7 +127,6 @@ public class ItemStackSerialization {
     }
 
     public static ItemStack deserialize(byte[] src) {
-        System.out.println(src.length);
         return (ItemStack) deserialize(src, 0).getResult();
     }
 
@@ -651,11 +650,6 @@ public class ItemStackSerialization {
     // read display name
     private static Result deserializeDisplayName(int i, byte[] src) {
         // read name
-        System.out.println("Diagnostic:");
-        System.out.println(i);
-        System.out.println(new String((char)src[i] + "" +(char) src[2]));
-        System.out.print(new String(ByteArrayBuilder.split(src, i)[0]) + " ");
-        System.out.println(new String(ByteArrayBuilder.split(src, i)[1]));
         String string = SerializationReader.readString(i += 2, src);
         // return result class with result and current read position
         return new Result(string, i + string.getBytes().length);
