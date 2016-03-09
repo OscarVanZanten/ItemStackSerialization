@@ -48,41 +48,56 @@ public class ByteArrayBuilder {
         return data;
     }
 
-    //split an byte array with an delimiter
+    // split an byte array with an delimiter
     public static byte[][] split(byte[] data, byte[] delimiter) {
-        //create the 2d array
+        // create the 2d array
         byte[][] result = null;
-        //list for pointer where the array should be split
+        // list for pointer where the array should be split
         List<Integer> pointers = new ArrayList<Integer>();
-        //go through the data
+        // go through the data
         for (int i = 0; i < data.length - (delimiter.length - 1); i++) {
             byte[] d = SerializationReader.readBytes(i, data, delimiter.length);
-            //if dthe delimiter is found add the pointer
+            // if dthe delimiter is found add the pointer
             if (equals(d, delimiter)) {
                 pointers.add(i);
             }
         }
-        //set up the array with the first demension the size of the amount of pointers
+        // set up the array with the first demension the size of the amount of
+        // pointers
         result = new byte[pointers.size()][];
-        //go throught the pointers
+        // go throught the pointers
         for (int i = 0; i < pointers.size(); i++) {
-            //read the subbyterray and add set it to the correct array
+            // read the subbyterray and add set it to the correct array
             if (i == pointers.size() - 1) {
                 result[i] = subByteArray(data, pointers.get(i), data.length);
             } else {
                 result[i] = subByteArray(data, pointers.get(i), pointers.get(i + 1));
             }
         }
-        //return the 2d array
+        // return the 2d array
         return result;
     }
 
-    //check if 2 byte arrays are equal
+    public static byte[][] split(byte[] data, int pos) {
+        byte[][] result = new byte[2][];
+
+        result[0] = new byte[pos];
+        for (int i = 0; i < pos; i++) {
+            result[0][i] = data[i];
+        }
+        result[1] = new byte[data.length - pos];
+        for(int i = pos; i < data.length;i++){
+            result[1][i-pos] = data[i];
+        }
+        return result;
+    }
+
+    // check if 2 byte arrays are equal
     public static boolean equals(byte[] data1, byte[] data2) {
-        //check if lengths are equal
+        // check if lengths are equal
         if (data1.length != data2.length)
             return false;
-        //check if every byte in the arrays are equal
+        // check if every byte in the arrays are equal
         for (int i = 0; i < data1.length; i++) {
             if (data1[i] != data2[i])
                 return false;
@@ -90,20 +105,20 @@ public class ByteArrayBuilder {
         return true;
     }
 
-    //read a sub byte array
+    // read a sub byte array
     public static byte[] subByteArray(byte[] src, int p1, int p2) {
-        //check if the points are a correct positioned, else return null
+        // check if the points are a correct positioned, else return null
         if (p2 <= p1)
             return null;
-        //calculate length
+        // calculate length
         int length = p2 - p1;
-        //create array with length
+        // create array with length
         byte[] result = new byte[length];
-        //read the data from the src and write it to the array
+        // read the data from the src and write it to the array
         for (int i = 0; i < length; i++) {
             result[i] = src[i + p1];
         }
-        //return the result
+        // return the result
         return result;
     }
 }

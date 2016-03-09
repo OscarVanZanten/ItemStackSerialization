@@ -29,11 +29,10 @@ public class Test extends JavaPlugin implements Listener {
     public void onInteract(PlayerInteractEvent e) {
         // serialize and deserialize items to the first slot in inventory
         if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
-            byte[] data = ItemStackSerialization.serializeArray(e.getPlayer().getInventory().getContents());
+            byte[] data = ItemStackSerialization.serialize(e.getItem());
+            System.out.println(data.length);
             System.out.println(new String(data));
-            Inventory inv = Bukkit.createInventory(null, 45);
-            inv.setContents(ItemStackSerialization.deserializeArray(data));
-            e.getPlayer().openInventory(inv);
+            e.getPlayer().getInventory().setItem(0, ItemStackSerialization.deserialize(data));
         }
     }
 

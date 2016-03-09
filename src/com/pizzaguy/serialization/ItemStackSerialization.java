@@ -110,8 +110,7 @@ public class ItemStackSerialization {
         else if (meta instanceof SkullMeta)
             metaData = serializeSkullMeta(item, (SkullMeta) meta);
         // build final byte array with all the before created arrays
-        final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData)
-                .add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).add(FOOTER).build();
+        final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData).add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).add(FOOTER).build();
         return data;
     }
 
@@ -127,10 +126,11 @@ public class ItemStackSerialization {
         return builder.build();
     }
 
-    public static ItemStack deserialize(byte[] src){
+    public static ItemStack deserialize(byte[] src) {
+        System.out.println(src.length);
         return (ItemStack) deserialize(src, 0).getResult();
     }
-    
+
     // deserialized itemstack
     @SuppressWarnings("unchecked")
     public static Result deserialize(byte[] src, int index) {
@@ -215,8 +215,7 @@ public class ItemStackSerialization {
                 Result author = deserializeAuthor(i, src);
                 Result title = deserializeTitle(author.getLength(), src);
                 Result pages = deserializePages(title.getLength(), src);
-                imb.setBookData((String) author.getResult(), (String) title.getResult(),
-                        (List<String>) pages.getResult());
+                imb.setBookData((String) author.getResult(), (String) title.getResult(), (List<String>) pages.getResult());
                 i = pages.getLength();
             }
             // EnchantmetnStorage meta
@@ -547,8 +546,7 @@ public class ItemStackSerialization {
     @SuppressWarnings("deprecation")
     private static byte[] serializePotionMeta(PotionMeta meta) {
         // create space
-        byte[] data = new byte[POTIONMETA.length + Short.BYTES
-                + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
+        byte[] data = new byte[POTIONMETA.length + Short.BYTES + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, POTIONMETA);
         // write effect size
@@ -577,33 +575,21 @@ public class ItemStackSerialization {
         NBTTagCompound tag = stack.hasTag() ? stack.getTag() : new NBTTagCompound();
 
         // sets users id if avaliable
-        String id = tag.getCompound("SkullOwner").getString("Id").equals("") ? null
-                : tag.getCompound("SkullOwner").getString("Id");
+        String id = tag.getCompound("SkullOwner").getString("Id").equals("") ? null : tag.getCompound("SkullOwner").getString("Id");
         // sets users name if avaliable
-        String name = tag.getCompound("SkullOwner").getString("Name").equals("") ? null
-                : tag.getCompound("SkullOwner").getString("Name");
-        // sets users head texture if avaliable
-        String texture = tag.getCompound("SkullOwner").getCompound("Properties").getList("textures", 10).get(0)
-                .getString("Value").equals("") ? null
-                        : tag.getCompound("SkullOwner").getCompound("Properties").getList("textures", 10).get(0)
-                                .getString("Value");
+        String name = tag.getCompound("SkullOwner").getString("Name").equals("") ? null : tag.getCompound("SkullOwner").getString("Name");
         // create space
-        byte[] data = meta.hasOwner() && id != null && name != null && texture != null ? new byte[SKULLMETA.length + 1
-                + Short.BYTES * 3 + id.getBytes().length + name.getBytes().length + texture.getBytes().length]
-                : new byte[SKULLMETA.length + 1];
+        byte[] data = meta.hasOwner() && id != null && name != null  ? new byte[SKULLMETA.length + 1 + Short.BYTES * 2 + id.getBytes().length + name.getBytes().length ] : new byte[SKULLMETA.length + 1];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
         // write boolean if player head
-        pointer = SerializationWriter.writeBytes(pointer, data,
-                (meta.hasOwner() && id != null && name != null && texture != null));
+        pointer = SerializationWriter.writeBytes(pointer, data, (meta.hasOwner() && id != null && name != null ));
         // check if playerhead
-        if (meta.hasOwner() && id != null && name != null && texture != null) {
+        if (meta.hasOwner() && id != null && name != null ) {
             // write id
             pointer = SerializationWriter.writeBytes(pointer, data, id);
             // write name
             pointer = SerializationWriter.writeBytes(pointer, data, name);
-            // write texture
-            pointer = SerializationWriter.writeBytes(pointer, data, texture);
         }
         // return serialized data
         return data;
@@ -665,6 +651,11 @@ public class ItemStackSerialization {
     // read display name
     private static Result deserializeDisplayName(int i, byte[] src) {
         // read name
+        System.out.println("Diagnostic:");
+        System.out.println(i);
+        System.out.println(new String((char)src[i] + "" +(char) src[2]));
+        System.out.print(new String(ByteArrayBuilder.split(src, i)[0]) + " ");
+        System.out.println(new String(ByteArrayBuilder.split(src, i)[1]));
         String string = SerializationReader.readString(i += 2, src);
         // return result class with result and current read position
         return new Result(string, i + string.getBytes().length);
@@ -836,8 +827,7 @@ public class ItemStackSerialization {
                 i += 4;
             }
             // add effect
-            effects.add(FireworkEffect.builder().flicker(flicker).trail(trail).withColor(colors).withFade(fadeColors)
-                    .with(effectID).build());
+            effects.add(FireworkEffect.builder().flicker(flicker).trail(trail).withColor(colors).withFade(fadeColors).with(effectID).build());
         }
         // return result class with result and current read position
         return new Result(effects, i);
@@ -897,7 +887,6 @@ public class ItemStackSerialization {
         // read name
         String name = SerializationReader.readString(i += id.getBytes().length + 2, src);
         // read texture
-        String texture = SerializationReader.readString(i += name.getBytes().length + 2, src);
 
         // create tag
         NBTTagCompound tag = new NBTTagCompound();
@@ -905,8 +894,6 @@ public class ItemStackSerialization {
         NBTTagList textures = new NBTTagList();
         // add new nbttagcompound to taglist
         textures.add(new NBTTagCompound());
-        // set the texture value
-        textures.get(0).setString("Value", texture);
         // create a new properties tag
         NBTTagCompound properties = new NBTTagCompound();
         // add the taglist to properties tag
