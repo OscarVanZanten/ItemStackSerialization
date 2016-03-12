@@ -85,7 +85,6 @@ public class ItemStackSerialization {
         final byte[] enchants = serializeEnchantments(item.getEnchantments());
         //// base meta data ////
         ItemMeta meta = item.getItemMeta();
-        System.out.println(item.getItemMeta());
         // display name //
         final byte[] displayname = meta.hasDisplayName() ? serializeDisplayName(meta.getDisplayName().trim()) : null;
         // lore //
