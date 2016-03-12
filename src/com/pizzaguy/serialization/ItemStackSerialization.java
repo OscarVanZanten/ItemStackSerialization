@@ -27,8 +27,10 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionType;
 
 import com.pizzaguy.serialization.builder.ByteArrayBuilder;
 import com.pizzaguy.serialization.builder.ItemStackBuilder;
@@ -83,6 +85,7 @@ public class ItemStackSerialization {
         final byte[] enchants = serializeEnchantments(item.getEnchantments());
         //// base meta data ////
         ItemMeta meta = item.getItemMeta();
+        System.out.println(item.getItemMeta());
         // display name //
         final byte[] displayname = meta.hasDisplayName() ? serializeDisplayName(meta.getDisplayName().trim()) : null;
         // lore //
@@ -95,20 +98,21 @@ public class ItemStackSerialization {
         // metadata
         if (meta instanceof BannerMeta)
             metaData = serializeBannerMeta((BannerMeta) meta);
-        else if (meta instanceof BookMeta)
+        if (meta instanceof BookMeta)
             metaData = serializeBookMeta((BookMeta) meta);
-        else if (meta instanceof EnchantmentStorageMeta)
+        if (meta instanceof EnchantmentStorageMeta)
             metaData = serializeEnchantmentStorageMeta((EnchantmentStorageMeta) meta);
-        else if (meta instanceof FireworkMeta)
+        if (meta instanceof FireworkMeta)
             metaData = serializeFireworkMeta((FireworkMeta) meta);
-        else if (meta instanceof LeatherArmorMeta)
+        if (meta instanceof LeatherArmorMeta)
             metaData = serializeLeatherArmorMeta((LeatherArmorMeta) meta);
-        else if (meta instanceof MapMeta)
+        if (meta instanceof MapMeta)
             metaData = serializeMapMeta((MapMeta) meta);
-        else if (meta instanceof PotionMeta)
+        if (meta instanceof PotionMeta) 
             metaData = serializePotionMeta((PotionMeta) meta);
-        else if (meta instanceof SkullMeta)
+        if (meta instanceof SkullMeta)
             metaData = serializeSkullMeta(item, (SkullMeta) meta);
+
         // build final byte array with all the before created arrays
         final byte[] data = new ByteArrayBuilder(HEADER).add(material).add(amount).add(durability).add(materialData).add(enchants).add(displayname).add(lore).add(itemflags).add(metaData).add(FOOTER).build();
         return data;
@@ -244,9 +248,11 @@ public class ItemStackSerialization {
             }
             // PotionMeta
             else if (id.equals(new String(POTIONMETA)) && !imb.isPotionSet()) {
-                Result r = deserializeCustomPotions(i, src);
-                imb.setCustomPotions((List<PotionEffect>) r.getResult());
-                i = r.getLength();
+                Result r1 = deserializePotionData(i, src);
+                Result r2 = deserializeCustomPotions(r1.getLength(), src);
+                imb.setPotionData((PotionData) r1.getResult());
+                imb.setCustomPotions((List<PotionEffect>) r2.getResult());
+                i = r2.getLength();
             }
             // Skull meta
             else if (id.equals(new String(SKULLMETA)) && !imb.isSkullSet()) {
@@ -545,9 +551,15 @@ public class ItemStackSerialization {
     @SuppressWarnings("deprecation")
     private static byte[] serializePotionMeta(PotionMeta meta) {
         // create space
-        byte[] data = new byte[POTIONMETA.length + Short.BYTES + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
+        byte[] data = new byte[POTIONMETA.length + Short.BYTES * 2 + 2 + (meta.getCustomEffects().size() * (Short.BYTES * 3 + 2))];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, POTIONMETA);
+        // write main effect
+        pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getBasePotionData().getType().ordinal());
+        // write extended
+        pointer = SerializationWriter.writeBytes(pointer, data, meta.getBasePotionData().isExtended());
+        // write upgraded
+        pointer = SerializationWriter.writeBytes(pointer, data, meta.getBasePotionData().isUpgraded());
         // write effect size
         pointer = SerializationWriter.writeBytes(pointer, data, (short) meta.getCustomEffects().size());
         // write effects
@@ -578,13 +590,13 @@ public class ItemStackSerialization {
         // sets users name if avaliable
         String name = tag.getCompound("SkullOwner").getString("Name").equals("") ? null : tag.getCompound("SkullOwner").getString("Name");
         // create space
-        byte[] data = meta.hasOwner() && id != null && name != null  ? new byte[SKULLMETA.length + 1 + Short.BYTES * 2 + id.getBytes().length + name.getBytes().length ] : new byte[SKULLMETA.length + 1];
+        byte[] data = meta.hasOwner() && id != null && name != null ? new byte[SKULLMETA.length + 1 + Short.BYTES * 2 + id.getBytes().length + name.getBytes().length] : new byte[SKULLMETA.length + 1];
         // write header
         int pointer = SerializationWriter.writeBytes(0, data, SKULLMETA);
         // write boolean if player head
-        pointer = SerializationWriter.writeBytes(pointer, data, (meta.hasOwner() && id != null && name != null ));
+        pointer = SerializationWriter.writeBytes(pointer, data, (meta.hasOwner() && id != null && name != null));
         // check if playerhead
-        if (meta.hasOwner() && id != null && name != null ) {
+        if (meta.hasOwner() && id != null && name != null) {
             // write id
             pointer = SerializationWriter.writeBytes(pointer, data, id);
             // write name
@@ -849,7 +861,7 @@ public class ItemStackSerialization {
         // create list
         List<PotionEffect> effects = new ArrayList<PotionEffect>();
         // read amount of potions
-        short length = SerializationReader.readShort(i += Short.BYTES, src);
+        short length = SerializationReader.readShort(i, src);
         // read potions
         for (int x = 0; x < length; x++) {
             // read effectid
@@ -867,6 +879,15 @@ public class ItemStackSerialization {
         }
         // return result class with result and current read position
         return new Result(effects, i);
+    }
+
+    private static Result deserializePotionData(int i, byte[] src) {
+        int ordinal = SerializationReader.readShort(i += 2, src);
+        boolean extended = SerializationReader.readBoolean(i += 2, src);
+        boolean upgraded = SerializationReader.readBoolean(i += 1, src);
+        i+=1;
+        PotionData data = new PotionData(PotionType.values()[ordinal], extended, upgraded);
+        return new Result(data, i);
     }
 
     // read skulldata
